@@ -1,6 +1,7 @@
 import { readdir, readFile, stat } from "fs/promises";
 import { join } from "path";
 import { homedir } from "os";
+import { estimateCost } from "../pricing.js";
 
 export type ModelUsage = {
   inputTokens: number;
@@ -51,75 +52,6 @@ const TOOLS: { name: string; paths: string[]; recursive: boolean }[] = [
   { name: "Aider", paths: [".aider"], recursive: true },
   { name: "Continue.dev", paths: [".continue/sessions"], recursive: true },
 ];
-
-const MODEL_PRICING: Record<
-  string,
-  { input: number; output: number; cacheRead: number; cacheWrite: number }
-> = {
-  "claude-opus-4-6": {
-    input: 15,
-    output: 75,
-    cacheRead: 1.5,
-    cacheWrite: 18.75,
-  },
-  "claude-opus-4-7": {
-    input: 15,
-    output: 75,
-    cacheRead: 1.5,
-    cacheWrite: 18.75,
-  },
-  "claude-sonnet-4-6": {
-    input: 3,
-    output: 15,
-    cacheRead: 0.3,
-    cacheWrite: 3.75,
-  },
-  "claude-haiku-4-5-20251001": {
-    input: 0.8,
-    output: 4,
-    cacheRead: 0.08,
-    cacheWrite: 1,
-  },
-  "claude-sonnet-4-5-20250514": {
-    input: 3,
-    output: 15,
-    cacheRead: 0.3,
-    cacheWrite: 3.75,
-  },
-};
-
-const DEFAULT_PRICING = {
-  input: 3,
-  output: 15,
-  cacheRead: 0.3,
-  cacheWrite: 3.75,
-};
-
-function getPricing(model: string) {
-  if (MODEL_PRICING[model]) return MODEL_PRICING[model];
-  if (model.includes("opus")) return MODEL_PRICING["claude-opus-4-6"];
-  if (model.includes("sonnet")) return MODEL_PRICING["claude-sonnet-4-6"];
-  if (model.includes("haiku"))
-    return MODEL_PRICING["claude-haiku-4-5-20251001"];
-  return DEFAULT_PRICING;
-}
-
-function estimateCost(
-  model: string,
-  input: number,
-  output: number,
-  cacheRead: number,
-  cacheWrite: number,
-): number {
-  const p = getPricing(model);
-  return (
-    (input * p.input +
-      output * p.output +
-      cacheRead * p.cacheRead +
-      cacheWrite * p.cacheWrite) /
-    1_000_000
-  );
-}
 
 async function findJsonlFiles(
   dir: string,

@@ -3,29 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>agentcap — Credit card fraud alerts for AI spend</title>
+  <title>tokenclaw — Claw back your agent spend</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="landing-body">
 
   <nav class="landing-nav">
-    <div class="nav-brand">agentcap</div>
+    <div class="nav-brand">tokenclaw</div>
     <ul class="nav-links">
       <li><a href="#features">Features</a></li>
       <li><a href="#how-it-works">How It Works</a></li>
       <li><a href="#install">Install</a></li>
       <li><a href="dashboard.html">Live Demo</a></li>
-      <li><a href="https://github.com/katrinalaszlo/agentcap" style="display:inline-flex;align-items:center;gap:5px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></li>
+      <li><a href="https://github.com/katrinalaszlo/tokenclaw" style="display:inline-flex;align-items:center;gap:5px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></li>
     </ul>
     <a href="#install" class="btn btn-primary">Install</a>
   </nav>
 
   <section class="hero">
     <div class="hero-badge">Open Source</div>
-    <h1>Your AI tools are spending money. <span class="highlight">Do you know how much?</span></h1>
-    <p class="hero-sub">Install one package. It scans every AI tool on your machine, shows you what you're spending, and yells when something's wrong. No signup. No proxy. No code changes.</p>
+    <h1>Your AI agents don't have a spending limit. <span class="highlight">Now they do.</span></h1>
+    <p class="hero-sub">Local proxy that blocks requests when the budget is gone. Not an alert. Not a dashboard. A hard stop. Per API key, per agent. One command. No cloud.</p>
     <div class="hero-cta">
-      <a href="#cta" class="btn btn-primary">npx agentcap</a>
+      <a href="#install" class="btn btn-primary">npx tokenclaw proxy</a>
       <a href="dashboard.html" class="btn btn-secondary">See Dashboard</a>
     </div>
 
@@ -37,81 +37,82 @@
         <span class="terminal-title">terminal</span>
       </div>
       <div class="terminal-body">
-        <div><span class="line-prompt">$ </span><span class="line-cmd">npx agentcap</span></div>
-        <div style="margin-top:12px;"><span class="line-output">  Scanning AI tools...</span></div>
-        <div><span class="line-output">  found  </span><span class="line-tool">Claude Code</span><span class="line-output">     416 sessions    </span><span class="line-cost">~$12,570</span></div>
-        <div><span class="line-output">  found  </span><span class="line-tool">OpenClaw</span><span class="line-output">          23 sessions    </span><span class="line-cost">~$340</span></div>
-        <div><span class="line-output">  found  </span><span class="line-tool">Cursor</span><span class="line-output">            89 sessions    </span><span style="color:var(--success);">subscription</span></div>
-        <div style="margin-top:12px;"><span class="line-output">  Set a daily spend alert? (recommended)</span></div>
-        <div><span class="line-prompt">  > </span><span class="line-cmd">$100/day</span></div>
-        <div style="margin-top:8px;"><span class="line-output">  Where should alerts go?</span></div>
-        <div><span class="line-prompt">  > </span><span class="line-cmd">Slack webhook</span></div>
-        <div style="margin-top:8px;"><span style="color:var(--success);">  Done.</span><span class="line-output"> Monitoring started. Will alert on spend > $100/day.</span></div>
+        <div><span class="line-prompt">$ </span><span class="line-cmd">tokenclaw set --key sk-ant-proj-research --budget 10/day</span></div>
+        <div><span style="color:var(--success);">  Set budget: sk-ant-proj-research &rarr; $10/day</span></div>
+        <div style="margin-top:12px;"><span class="line-prompt">$ </span><span class="line-cmd">tokenclaw set --key sk-ant-proj-deploy --budget 100/day</span></div>
+        <div><span style="color:var(--success);">  Set budget: sk-ant-proj-deploy &rarr; $100/day</span></div>
+        <div style="margin-top:12px;"><span class="line-prompt">$ </span><span class="line-cmd">tokenclaw proxy</span></div>
+        <div><span class="line-output">  tokenclaw proxy listening on http://localhost:4040</span></div>
+        <div><span class="line-output">  Forwarding: /v1/messages &rarr; Anthropic, /v1/chat/completions &rarr; OpenAI</span></div>
+        <div><span class="line-output">  2 key budgets active</span></div>
+        <div style="margin-top:12px;"><span class="line-output">  sk-ant-proj-research claude-sonnet-4-6 in=12K out=3K </span><span class="line-cost">$0.0810</span></div>
+        <div><span class="line-output">  sk-ant-proj-research claude-sonnet-4-6 in=8K out=1K </span><span class="line-cost">$0.0390</span></div>
+        <div><span style="color:var(--danger);">  BLOCKED sk-ant-proj-research &mdash; $10.42 / $10.00 day</span></div>
       </div>
     </div>
   </section>
 
   <section class="features-section" id="features">
     <div class="section-label">WHAT IT DOES</div>
-    <h2 class="section-title">Credit card fraud alerts for AI spend</h2>
-    <p class="section-desc">Your bank texts you when a suspicious charge hits. This does the same thing for your AI tools.</p>
+    <h2 class="section-title">Spending authority lives on the key</h2>
+    <p class="section-desc">One key per agent. One budget per key. A runaway on one key can't touch the other. 13+ competitors do account-level caps. This does per-key.</p>
     <div class="feature-grid">
       <div class="feature-card">
-        <div class="feature-icon" style="background:var(--accent-dim); color:var(--accent);">&#9906;</div>
-        <h3>Auto-discovers your tools</h3>
-        <p>Finds Claude Code, OpenClaw, Cursor, Windsurf, Aider, and more. Reads local session files. No API keys needed for scanning.</p>
+        <div class="feature-icon" style="background:var(--danger-dim); color:var(--danger);">&#9872;</div>
+        <h3>Hard budget caps</h3>
+        <p>Not a soft limit. Not a warning. The proxy returns 429 and blocks the request. The agent can't spend past the budget. Period.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:var(--danger-dim); color:var(--danger);">&#9872;</div>
-        <h3>Escalating alerts</h3>
-        <p>Not a one-time notification. If you don't acknowledge, it gets louder. Every 4 hours, then every 2, then hourly. Until you say "this is OK."</p>
+        <div class="feature-icon" style="background:var(--accent-dim); color:var(--accent);">&#9906;</div>
+        <h3>Multi-provider</h3>
+        <p>One proxy handles Anthropic and OpenAI. Auto-detects provider from request path. Covers Claude Code, OpenClaw, GPT agents, and any OpenAI-compatible API.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--success-dim); color:var(--success);">&#10003;</div>
-        <h3>Acknowledgment loop</h3>
-        <p>Reply "ok" in Slack or run <code style="font-family:var(--mono);font-size:11px;background:var(--bg-hover);padding:1px 5px;border-radius:3px;">agentcap ack</code> in your terminal. Silences for 24h. If spend keeps rising, it alerts again.</p>
+        <h3>Per-key tracking</h3>
+        <p>See exactly how much each API key has spent. Daily, weekly, monthly budgets. Longest-prefix matching for key rotation.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--warning-dim); color:var(--warning);">&#8593;</div>
-        <h3>Rate-based detection</h3>
-        <p>"Your spend jumped 3x from yesterday" is more useful than "you've crossed $100." Detects velocity, not just thresholds.</p>
+        <h3>Escalating alerts</h3>
+        <p>Slack alerts at 80% and 100% of budget. If you don't acknowledge, it keeps yelling. Louder each time. Plus escalating account-level alerts.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--accent-dim); color:var(--accent);">&#128274;</div>
-        <h3>Privacy-first</h3>
-        <p>Everything runs locally. No cloud. No telemetry. No accounts. Session data and prompts never leave your machine.</p>
+        <h3>Local-first</h3>
+        <p>Everything runs on your machine. No cloud. No telemetry. No accounts. Requests proxy through localhost, never through a third party.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--success-dim); color:var(--success);">&#36;</div>
-        <h3>Subscription vs API</h3>
-        <p>Shows both numbers: what you consumed (token estimate) and what you paid (subscription). So you know if your plan is worth it.</p>
+        <h3>Scan without proxy</h3>
+        <p>Also scans 9 AI tools on your machine (Claude Code, Cursor, Windsurf, Aider, etc.) and shows what you're spending. No API keys needed.</p>
       </div>
     </div>
   </section>
 
   <section class="how-section" id="how-it-works">
     <div class="section-label">HOW IT WORKS</div>
-    <h2 class="section-title">Install. Scan. Forget.</h2>
+    <h2 class="section-title">Set budgets. Start proxy. Done.</h2>
     <div class="steps">
       <div class="step">
         <div class="step-number">1</div>
         <div class="step-content">
-          <h3>Install</h3>
-          <p><code>npx agentcap</code> &mdash; scans your machine for AI tools, shows what it found, asks where to send alerts. 60 seconds.</p>
+          <h3>Set per-key budgets</h3>
+          <p><code>tokenclaw set --key sk-ant-proj-research --budget 10/day</code> &mdash; each API key gets its own spending limit. Daily, weekly, or monthly.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">2</div>
         <div class="step-content">
-          <h3>It watches</h3>
-          <p>Runs in the background via cron. Checks spend against your thresholds. Compares today to your baseline. You don't think about it.</p>
+          <h3>Start the proxy</h3>
+          <p><code>tokenclaw proxy</code> starts on localhost:4040. Point your agents at it with <code>ANTHROPIC_BASE_URL=http://localhost:4040</code> or <code>OPENAI_BASE_URL=http://localhost:4040</code>.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">3</div>
         <div class="step-content">
-          <h3>It yells when something's wrong</h3>
-          <p>Slack message: "OpenClaw spent $194 in 6 hours. Your daily avg is $90. Reply ok to silence." If you don't reply, it keeps yelling. Louder each time.</p>
+          <h3>Budget exceeded? Blocked.</h3>
+          <p>The proxy returns 429. The agent sees a clear error with the exact CLI command to increase the budget. Slack alert fires. No spend slips through.</p>
         </div>
       </div>
     </div>
@@ -125,10 +126,10 @@
         <span style="font-size:13px;font-weight:600;color:var(--text-primary);">Slack Alert Preview</span>
       </div>
       <div style="padding:20px;font-family:var(--mono);font-size:13px;line-height:1.8;">
-        <div style="color:var(--danger);font-weight:600;">agentcap Daily spend alert</div>
-        <div style="color:var(--text-secondary);">Today: <span style="color:var(--warning);">$287</span> (normal: ~$90/day)</div>
-        <div style="color:var(--text-secondary);">Source: <span style="color:var(--accent);">OpenClaw agent "threat-intel"</span> &mdash; $194 in last 6 hours</div>
-        <div style="margin-top:8px;color:var(--text-muted);">Reply <span style="color:var(--text-primary);">"ok"</span> to acknowledge &middot; Next alert in 4 hours if unacknowledged</div>
+        <div style="color:var(--danger);font-weight:600;">tokenclaw Key budget: sk-ant-proj-research</div>
+        <div style="color:var(--text-secondary);">$10.42 spent (threshold: <span style="color:var(--warning);">$10.00/day</span>)</div>
+        <div style="color:var(--text-secondary);">Requests blocked until budget resets at midnight UTC</div>
+        <div style="margin-top:8px;color:var(--text-muted);">Run <span style="color:var(--text-primary);">tokenclaw set --key sk-ant-proj-research --budget 20/day</span> to increase</div>
       </div>
     </div>
   </section>
@@ -136,42 +137,47 @@
   <!-- Install -->
   <section style="padding:80px 48px;max-width:800px;margin:0 auto;" id="install">
     <div class="section-label">INSTALL</div>
-    <h2 class="section-title">One command. 60 seconds.</h2>
-    <p class="section-desc">No signup. No accounts. No code changes. Runs locally on your machine.</p>
+    <h2 class="section-title">Three commands. Two minutes.</h2>
+    <p class="section-desc">No signup. No cloud. Runs on your machine. Requires Node 18+.</p>
 
-    <!-- Quick scan -->
+    <!-- Install -->
     <div class="card" style="margin-bottom:16px;">
-      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">Quick scan (see what you're spending)</div>
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">Install</div>
       <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:14px;display:flex;align-items:center;justify-content:space-between;">
-        <div><span style="color:var(--success);">$</span> <span style="color:var(--text-primary);">npx agentcap</span></div>
-        <button onclick="navigator.clipboard.writeText('npx agentcap')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:var(--font);">Copy</button>
+        <div><span style="color:var(--success);">$</span> <span style="color:var(--text-primary);">npm install -g tokenclaw</span></div>
+        <button onclick="navigator.clipboard.writeText('npm install -g tokenclaw')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:var(--font);">Copy</button>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Scans your machine, shows spend across all AI tools, exits. Nothing installed permanently.</div>
     </div>
 
-    <!-- Set up monitoring -->
+    <!-- Set budgets -->
     <div class="card" style="margin-bottom:16px;">
-      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">Set up monitoring (get alerts when something's wrong)</div>
-      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:14px;display:flex;align-items:center;justify-content:space-between;">
-        <div><span style="color:var(--success);">$</span> <span style="color:var(--text-primary);">npx agentcap init</span></div>
-        <button onclick="navigator.clipboard.writeText('npx agentcap init')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:var(--font);">Copy</button>
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">Set per-key budgets</div>
+      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:13px;line-height:2;">
+        <div><span style="color:var(--success);">$</span> tokenclaw set --key sk-ant-proj-research --budget 10/day</div>
+        <div><span style="color:var(--success);">$</span> tokenclaw set --key sk-proj-deploy --budget 100/day</div>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Interactive setup: set thresholds, connect Slack, start background monitoring. Config saved to <code style="font-family:var(--mono);font-size:11px;background:var(--bg-hover);padding:1px 5px;border-radius:3px;">~/.acc/config.yaml</code></div>
     </div>
 
-    <!-- Global install -->
+    <!-- Start proxy -->
     <div class="card" style="margin-bottom:16px;">
-      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">Or install globally</div>
-      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:14px;display:flex;align-items:center;justify-content:space-between;">
-        <div><span style="color:var(--success);">$</span> <span style="color:var(--text-primary);">npm install -g agentcap</span></div>
-        <button onclick="navigator.clipboard.writeText('npm install -g agentcap')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:var(--font);">Copy</button>
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">Start the proxy</div>
+      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:13px;line-height:2;">
+        <div><span style="color:var(--success);">$</span> tokenclaw proxy</div>
+        <div style="color:var(--text-muted);"># Point your agents at it:</div>
+        <div><span style="color:var(--success);">$</span> ANTHROPIC_BASE_URL=http://localhost:4040 claude</div>
+        <div><span style="color:var(--success);">$</span> OPENAI_BASE_URL=http://localhost:4040 your-agent</div>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Then use <code style="font-family:var(--mono);font-size:11px;background:var(--bg-hover);padding:1px 5px;border-radius:3px;">agentcap</code> directly. Requires Node 18+.</div>
     </div>
 
-    <!-- Tools supported -->
+    <!-- Providers + tools supported -->
     <div style="margin-top:32px;text-align:center;">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Auto-discovers 9 tools</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Proxy supports</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px;">
+        <span style="background:var(--accent-dim);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:4px 12px;font-size:12px;color:var(--accent);">Anthropic</span>
+        <span style="background:var(--success-dim);border:1px solid var(--success);border-radius:var(--radius-sm);padding:4px 12px;font-size:12px;color:var(--success);">OpenAI</span>
+        <span style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:4px 12px;font-size:12px;color:var(--text-secondary);">+ any OpenAI-compatible API</span>
+      </div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Scanner auto-discovers 9 tools</div>
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
         <span style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:4px 12px;font-size:12px;color:var(--text-secondary);">Claude Code</span>
         <span style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:4px 12px;font-size:12px;color:var(--text-secondary);">OpenClaw</span>
@@ -188,19 +194,19 @@
 
   <!-- Final CTA -->
   <section class="cta-section">
-    <h2>The alarm that won't shut up until you say it's OK.</h2>
-    <p>Every other tool shows you a number. This one demands your attention when the number is wrong.</p>
+    <h2>Hard caps. Not soft limits.</h2>
+    <p>Every other tool shows you a number after the fact. This one blocks the request before the money is spent.</p>
     <div class="hero-cta">
-      <a href="https://github.com/katrinalaszlo/agentcap" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
-      <a href="https://www.npmjs.com/package/agentcap" class="btn btn-secondary">npm</a>
+      <a href="https://github.com/katrinalaszlo/tokenclaw" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
+      <a href="https://www.npmjs.com/package/tokenclaw" class="btn btn-secondary">npm</a>
     </div>
   </section>
 
   <footer class="landing-footer">
-    agentcap &middot; MIT License &middot; Local only &middot; No data leaves your machine
+    tokenclaw &middot; MIT License &middot; Local only &middot; No data leaves your machine
     <div style="margin-top:8px;">
-      <a href="https://github.com/katrinalaszlo/agentcap" style="color:var(--text-muted);margin-right:16px;">GitHub</a>
-      <a href="https://www.npmjs.com/package/agentcap" style="color:var(--text-muted);">npm</a>
+      <a href="https://github.com/katrinalaszlo/tokenclaw" style="color:var(--text-muted);margin-right:16px;">GitHub</a>
+      <a href="https://www.npmjs.com/package/tokenclaw" style="color:var(--text-muted);">npm</a>
     </div>
   </footer>
 

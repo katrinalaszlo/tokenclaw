@@ -1,7 +1,7 @@
 /**
  * Acknowledgment management.
  * Tracks which alerts have been acknowledged with a TTL.
- * Storage: JSON file at ~/.acc/ack-state.json
+ * Storage: JSON file at ~/.tokenclaw/ack-state.json
  *
  * Ack loop: alert fires -> user acks -> silence for TTL -> alert can fire again
  */
@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
 
-const ACK_DIR = join(homedir(), ".acc");
+const ACK_DIR = join(homedir(), ".tokenclaw");
 const ACK_FILE = join(ACK_DIR, "ack-state.json");
 const DEFAULT_TTL_HOURS = 24;
 
