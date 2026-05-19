@@ -134,46 +134,6 @@
       <div>"I set a spending limit. <span class="warn">Turns out it was just an email.</span>"</div>
     </section>
 
-    <section class="section">
-      <h2>What you get</h2>
-      <div class="steps">
-
-        <div class="step">
-          <div class="step-label">View</div>
-          <div class="step-title">See what each API key is spending.</div>
-          <div class="step-code">
-            <button class="copy-btn" onclick="navigator.clipboard.writeText('tokenclaw keys');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
-            <span class="g">$</span> tokenclaw keys<br>
-            <br>
-            <span class="m">sk-ant-research   $7.20 / $10 (72%)</span><br>
-            <span class="m">sk-proj-deploy    $12.50 / $100 (12%)</span>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-label">Warn</div>
-          <div class="step-title">Get alerts when spend crosses thresholds you set.</div>
-          <div class="step-code">
-            <button class="copy-btn" onclick="navigator.clipboard.writeText('tokenclaw set --key sk-ant-research --budget 10/day --warn 80%');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
-            <span class="g">$</span> tokenclaw set --key sk-ant-research --budget 10/day --warn 80%<br>
-            <br>
-            <span class="y">WARNING: sk-ant-research at 84% of budget</span>
-          </div>
-        </div>
-
-        <div class="step">
-          <div class="step-label">Block</div>
-          <div class="step-title">Hard stop when limits are exceeded. Nothing blocked unless you say so.</div>
-          <div class="step-code">
-            <button class="copy-btn" onclick="navigator.clipboard.writeText('tokenclaw set --key sk-ant-research --budget 10/day --warn 80% --block 100%');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
-            <span class="g">$</span> tokenclaw set --key sk-ant-research --budget 10/day --warn 80% --block 100%<br>
-            <br>
-            <span class="r">BLOCKED — $10.42 / $10.00 day</span>
-          </div>
-        </div>
-
-      </div>
-    </section>
 
     <div class="how-img">
       <img src="tokenclaw-proxy.jpg" alt="tokenclaw proxy directing traffic between providers">
