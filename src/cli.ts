@@ -301,11 +301,6 @@ async function runFirstRun(): Promise<void> {
 }
 
 async function runScan(): Promise<void> {
-  if (isFirstRun()) {
-    await runFirstRun();
-    return;
-  }
-
   initDB();
   console.log(chalk.dim("Scanning local AI tools...\n"));
   const { found, notFound } = await scanLocalTools();
