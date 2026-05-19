@@ -254,13 +254,6 @@ function printScanResults(
 async function runFirstRun(): Promise<void> {
   initDB();
 
-  console.log(chalk.bold("\nWelcome to tokenclaw!\n"));
-  console.log(chalk.dim("Scanning local AI tools...\n"));
-  const { found, notFound } = await scanLocalTools();
-
-  printScanResults(found, notFound);
-  persistScanToDB(found);
-
   const rl = createInterface({ input: stdin, output: stdout });
 
   console.log(chalk.bold("\n\nWhat would you like to set up?\n"));
