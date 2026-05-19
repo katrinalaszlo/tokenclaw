@@ -71,7 +71,7 @@ tokenclaw watch
 
 Re-scans your session logs every hour and alerts when thresholds are crossed. No proxy needed.
 
-## Block requests when a key goes over budget
+## Block requests when a key goes over budget (Experimental)
 
 This requires the proxy. The proxy sits between your agents and the API, tracking spend per API key.
 
