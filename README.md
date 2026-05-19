@@ -1,107 +1,128 @@
 # tokenclaw
 
-Per-key spend enforcement for AI agents.
+View, alert, and control AI agent spend in real time.
 
-Monthly limits don't catch an agent that burns $200 in a single night. Daily per-key limits do.
+AI agents do not stop when something goes wrong. They keep running, retrying, and silently burning through API budgets.
+
+> "I left an agent running overnight. $280."
+>
+> "Agent entered an infinite loop. $4,200 in a weekend."
+>
+> "I set a spending limit. Turns out it was just an email."
+
+tokenclaw gives you visibility and control over that spend before it becomes a surprise bill.
+
+## What it does
+
+tokenclaw sits between your agents and model providers and gives you three things:
+
+- **View** spend per API key in real time
+- **Alert** when usage crosses thresholds you set
+- **Block** requests when limits are exceeded
+
+## Install
 
 ```bash
 npm install -g tokenclaw-dev
 ```
 
-## 30-second setup
+## 1. View your spend
 
 ```bash
-# Set a daily budget on an API key
-tokenclaw set --key sk-ant-proj-research --budget 10/day
-
-# Start the proxy
-tokenclaw proxy
-
-# Point your agent at it
-ANTHROPIC_BASE_URL=http://localhost:4040 claude
+tokenclaw keys
 ```
 
-When the budget is exceeded, the proxy returns 429:
+```
+sk-ant-research   $7.20 / $10 (72%)
+  warn at 80%
+  block at 100%
+
+sk-proj-deploy    $12.50 / $100 (12%)
+  warn at 80%
+```
+
+## 2. Set alerts and limits
+
+Define rules per API key:
+
+```bash
+tokenclaw set --key sk-ant-research --budget 10/day --warn 80% --block 100%
+```
+
+Just want alerts? No blocking:
+
+```bash
+tokenclaw set --key sk-ant-research --budget 10/day --warn 50% --warn 80%
+```
+
+Nothing is blocked unless you explicitly add `--block`.
+
+## 3. Start the proxy
+
+```bash
+tokenclaw proxy
+```
+
+Point your agent at it:
+
+```bash
+ANTHROPIC_BASE_URL=http://localhost:4040 claude
+OPENAI_BASE_URL=http://localhost:4040 your-agent
+```
+
+## What happens when limits are hit
+
+When usage crosses your rules:
+
+- **warn** → Slack alert, request passes through
+- **block** → 429 returned, request stopped
 
 ```json
 {
   "error": {
     "type": "budget_exceeded",
-    "message": "Key sk-ant-proj-research exceeded daily budget of $10.00 ($10.42 spent)."
+    "message": "Key sk-ant-research exceeded daily budget of $10.00 ($10.42 spent)."
   }
 }
 ```
 
 ## How it works
 
-Local proxy between your agents and the API. Auto-detects provider from request path.
+Your agent sends a request. tokenclaw identifies the API key, checks spend against your rules, and either forwards or blocks.
+
+Auto-detects provider from request path:
 
 - `/v1/messages` → Anthropic
 - `/v1/chat/completions` → OpenAI (also Groq, Together, Fireworks)
 
-Every request: check budget → forward → count tokens → update spend.
+One proxy. Runs on localhost.
 
-## Policy actions
+## Budget rules
 
-Each budget has an action that fires when the threshold is hit.
-
-```bash
-# Alert only — notify, don't block
-tokenclaw set --key sk-ant-research --budget 10/day --action alert
-
-# Enforce — hard stop, returns 429
-tokenclaw set --key sk-ant-deploy --budget 100/day --action enforce
-```
-
-`enforce` is the default. Start with `alert` if you want visibility before committing to hard stops.
-
-```bash
-tokenclaw keys
-# sk-ant-research         $7.20 / $10.00 day   (72%)  [alert]
-# sk-ant-deploy           $0.00 / $100.00 day   (0%)  [enforce]
-```
-
-## Alert mode
-
-Alert mode sends Slack notifications at 80% and 100% of budget. Requests pass through — nothing is blocked. Use this to understand your spend patterns before enforcing.
-
-## Enforce mode
-
-Enforce mode blocks requests when the budget is exceeded. The agent gets a 429 with a clear error message. Slack alerts still fire. This is the hard stop.
-
-## Commands
-
-```bash
-tokenclaw                # Scan local AI tools, show spend
-tokenclaw proxy          # Start the enforcement proxy
-tokenclaw set            # Set a budget policy
-tokenclaw keys           # Show spend vs budget per key
-tokenclaw status         # Current spend + alert status
-tokenclaw watch          # Continuous monitoring with alerts
-tokenclaw ack            # Acknowledge alerts (silence 24h)
-```
-
-## Budget periods
-
-| Period | Resets at |
+| Flag | What it does |
 |---|---|
-| `day` | Midnight UTC |
-| `week` | Monday midnight UTC |
-| `month` | 1st of month midnight UTC |
+| `--warn N%` | Send Slack alert at N% of budget |
+| `--block N%` | Block requests at N% of budget |
+| (no flags) | Default: warn at 80% |
 
-## Key matching
+Periods: `day` (midnight UTC), `week` (Monday UTC), `month` (1st UTC).
 
-Keys match on longest prefix. Register `sk-ant-proj-research`, and any key starting with that prefix matches. Unregistered keys pass through — spend is tracked but not limited.
+Keys match on longest prefix. Unregistered keys pass through with no limit.
 
-## Providers
+## Scan your tools
 
-| Provider | Models |
-|---|---|
-| Anthropic | Claude Opus, Sonnet, Haiku (4.x) |
-| OpenAI | GPT-4o, GPT-4.1, o3, o4-mini |
-| Google | Gemini 2.5 Pro, 2.5 Flash, 2.0 Flash |
+Even without the proxy:
 
-Unknown models use Sonnet-tier pricing as a conservative estimate. Configurable overrides planned.
+```bash
+tokenclaw          # scan local AI tools, show spend
+tokenclaw status   # current spend + alert status
+```
+
+Detects: Claude Code, OpenClaw, Cursor, Windsurf, Claude Desktop, Cline, Roo Code, Aider, Continue.dev.
+
+## Safety
+
+Nothing is blocked unless you configure a `--block` rule. Default is warn-only. The proxy is non-invasive until you tell it otherwise.
 
 ## Config
 
@@ -109,26 +130,29 @@ Unknown models use Sonnet-tier pricing as a conservative estimate. Configurable 
 
 ```yaml
 key_budgets:
-  sk-ant-proj-research:
+  sk-ant-research:
     budget: 10
     period: day
-    mode: alert
-  sk-ant-deploy:
-    budget: 100
-    period: day
-    mode: enforce
+    rules:
+      - at: 80
+        action: alert
+      - at: 100
+        action: block
 alerts:
   slack_webhook: "https://hooks.slack.com/..."
 ```
 
-## Scanning
-
-Even without the proxy, tokenclaw scans 9 local AI tools and shows what you're spending:
-
-Claude Code, OpenClaw, Cursor, Windsurf, Claude Desktop, Cline, Roo Code, Aider, Continue.dev.
+## Commands
 
 ```bash
-tokenclaw        # scan and show spend
+tokenclaw            # scan local AI tools
+tokenclaw proxy      # start enforcement proxy
+tokenclaw set        # set budget rules
+tokenclaw keys       # view spend vs budget
+tokenclaw status     # spend + alert status
+tokenclaw watch      # continuous monitoring
+tokenclaw ack        # silence alerts (24h)
+tokenclaw config     # show config
 ```
 
 ## Uninstall
@@ -137,21 +161,6 @@ tokenclaw        # scan and show spend
 npm uninstall -g tokenclaw-dev
 rm -rf ~/.tokenclaw
 ```
-
-## Troubleshooting
-
-```bash
-tokenclaw config       # show current config
-tokenclaw ack          # silence active alerts
-tokenclaw keys         # check budgets and spend
-```
-
-Data lives in `~/.tokenclaw/`:
-- `config.yaml` — budgets, thresholds, Slack webhook
-- `data.db` — spend history (SQLite)
-- `ack-state.json` — acknowledged alerts
-
-To reset: `rm -rf ~/.tokenclaw`
 
 ## License
 

@@ -517,39 +517,59 @@ program
 
 program
   .command("set")
-  .description("Set a per-key budget")
+  .description("Set a per-key budget with rules")
   .requiredOption("--key <prefix>", "API key prefix to budget")
   .requiredOption(
     "--budget <amount>",
     "Budget in format: 10/day, 500/week, 2000/month",
   )
-  .option(
-    "--mode <mode>",
-    "alert (notify only) or enforce (block requests)",
-    "enforce",
-  )
-  .action((opts: { key: string; budget: string; mode: string }) => {
-    try {
-      const mode =
-        opts.mode === "alert" ? ("alert" as const) : ("enforce" as const);
-      const keyBudget = { ...parseBudgetString(opts.budget), mode };
-      const config = loadConfig();
-      config.key_budgets[opts.key] = keyBudget;
-      saveConfig(config);
-      const modeLabel =
-        mode === "alert"
-          ? chalk.yellow("alert only")
-          : chalk.red("enforce (blocks requests)");
-      console.log(
-        chalk.green(
-          `Set budget: ${opts.key} → $${keyBudget.budget}/${keyBudget.period}`,
-        ) + chalk.dim(` [${modeLabel}]`),
-      );
-    } catch (err) {
-      console.error(chalk.red(String(err)));
-      process.exit(1);
-    }
-  });
+  .option("--warn <pct...>", "Alert at N% of budget (repeatable)")
+  .option("--block <pct>", "Block requests at N% of budget")
+  .action(
+    (opts: {
+      key: string;
+      budget: string;
+      warn?: string[];
+      block?: string;
+    }) => {
+      try {
+        const base = parseBudgetString(opts.budget);
+        const rules: Array<{ at: number; action: "alert" | "block" }> = [];
+
+        if (opts.warn) {
+          for (const w of opts.warn) {
+            rules.push({ at: parseInt(w, 10), action: "alert" });
+          }
+        }
+        if (opts.block) {
+          rules.push({ at: parseInt(opts.block, 10), action: "block" });
+        }
+        if (rules.length === 0) {
+          rules.push({ at: 80, action: "alert" });
+        }
+        rules.sort((a, b) => a.at - b.at);
+
+        const keyBudget = { ...base, rules };
+        const config = loadConfig();
+        config.key_budgets[opts.key] = keyBudget;
+        saveConfig(config);
+
+        console.log(
+          chalk.green(`Set: ${opts.key} → $${base.budget}/${base.period}`),
+        );
+        for (const r of rules) {
+          const label =
+            r.action === "block"
+              ? chalk.red(`block at ${r.at}%`)
+              : chalk.yellow(`warn at ${r.at}%`);
+          console.log(`  ${label}`);
+        }
+      } catch (err) {
+        console.error(chalk.red(String(err)));
+        process.exit(1);
+      }
+    },
+  );
 
 program
   .command("keys")
@@ -576,20 +596,26 @@ program
       const spent = getSpendByKeyPrefix(prefix, since);
       const pct =
         budget.budget > 0 ? Math.round((spent / budget.budget) * 100) : 0;
-      const modeTag =
-        budget.mode === "alert" ? chalk.yellow("alert") : chalk.red("enforce");
+      const hasBlock = budget.rules.some((r) => r.action === "block");
       const bar =
-        pct >= 100
-          ? budget.mode === "enforce"
-            ? chalk.red("BLOCKED")
-            : chalk.yellow("OVER")
-          : pct >= 80
-            ? chalk.yellow(`${pct}%`)
-            : chalk.green(`${pct}%`);
+        pct >= 100 && hasBlock
+          ? chalk.red("BLOCKED")
+          : pct >= 100
+            ? chalk.yellow("OVER")
+            : pct >= 80
+              ? chalk.yellow(`${pct}%`)
+              : chalk.green(`${pct}%`);
 
       console.log(
-        `  ${chalk.white(prefix.padEnd(30))} ${fmtUSD(spent)} / ${fmtUSD(budget.budget)} ${budget.period}   (${bar})  ${chalk.dim(`[${modeTag}]`)}`,
+        `  ${chalk.white(prefix.padEnd(30))} ${fmtUSD(spent)} / ${fmtUSD(budget.budget)} ${budget.period}   (${bar})`,
       );
+      for (const r of budget.rules) {
+        const label =
+          r.action === "block"
+            ? chalk.red(`  block at ${r.at}%`)
+            : chalk.dim(`  warn at ${r.at}%`);
+        console.log(label);
+      }
     }
 
     // Show unregistered key spend
