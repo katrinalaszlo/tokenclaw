@@ -256,33 +256,10 @@ async function runFirstRun(): Promise<void> {
 
   const rl = createInterface({ input: stdin, output: stdout });
 
-  console.log(chalk.bold("\n\nWhat would you like to set up?\n"));
-  console.log(
-    `  ${chalk.white("1)")} Alerts only — get notified when spend crosses a threshold`,
-  );
-  console.log(
-    `  ${chalk.white("2)")} Alerts + hard cap — block requests when a per-key budget is exceeded`,
-  );
-  console.log(chalk.dim("     (option 2 requires running a local proxy)\n"));
-
-  const choice = await rl.question("Choose [1/2]: ");
-
-  if (choice.trim() === "2") {
-    await setupProxy(rl);
-  } else {
-    await setupAlerts(rl);
-  }
-
-  rl.close();
-}
-
-async function setupAlerts(
-  rl: ReturnType<typeof createInterface>,
-): Promise<void> {
-  console.log(chalk.bold("\n— Alert setup —\n"));
+  console.log(chalk.bold("\ntokenclaw setup\n"));
 
   const dailyStr = await rl.question(
-    `Daily spend threshold (USD) [${DEFAULT_CONFIG.thresholds.daily}]: `,
+    `Daily spend alert threshold (USD) [${DEFAULT_CONFIG.thresholds.daily}]: `,
   );
   const daily = dailyStr ? Number(dailyStr) : DEFAULT_CONFIG.thresholds.daily;
 
@@ -302,79 +279,25 @@ async function setupAlerts(
   };
 
   saveConfig(config);
+  rl.close();
 
   console.log(chalk.green(`\nConfig saved to ${getConfigPath()}`));
+  console.log(chalk.bold("\nNext steps:\n"));
   console.log(
-    `\nNext: run ${chalk.cyan("tokenclaw watch")} to start monitoring.`,
+    `  ${chalk.cyan("tokenclaw")}            See what you're spending`,
   );
   console.log(
-    chalk.dim("You can upgrade to per-key budgets + blocking later with ") +
-      chalk.white("tokenclaw proxy") +
-      chalk.dim("."),
+    `  ${chalk.cyan("tokenclaw watch")}      Start monitoring (alerts hourly)`,
   );
-}
-
-async function setupProxy(
-  rl: ReturnType<typeof createInterface>,
-): Promise<void> {
-  console.log(chalk.bold("\n— Proxy + per-key budget setup —\n"));
-
-  const keyPrefix = await rl.question(
-    "API key prefix to budget (e.g. sk-ant-research): ",
+  console.log(
+    `  ${chalk.cyan("tokenclaw list")}       Detailed views (models, projects, trends)`,
   );
-  if (!keyPrefix.trim()) {
-    console.log(
-      chalk.yellow(
-        "No key entered. You can add one later with: tokenclaw set --key <prefix> --budget <amount>/<period>",
-      ),
-    );
-    saveConfig({ ...DEFAULT_CONFIG });
-    return;
-  }
-
-  const budgetStr = await rl.question("Budget (e.g. 10/day, 500/week): ");
-  let base: ReturnType<typeof parseBudgetString>;
-  try {
-    base = parseBudgetString(budgetStr || "100/day");
-  } catch (err) {
-    console.error(chalk.red(String(err)));
-    saveConfig({ ...DEFAULT_CONFIG });
-    return;
-  }
-
-  const warnStr = await rl.question("Warn at what % of budget? [80]: ");
-  const warnAt = warnStr ? parseInt(warnStr, 10) : 80;
-
-  const blockStr = await rl.question(
-    "Block at what % of budget? (leave blank to skip): ",
+  console.log();
+  console.log(
+    chalk.dim(
+      `Want per-key budgets or hard blocking? See ${chalk.white("tokenclaw proxy --help")}`,
+    ),
   );
-  const rules: Array<{ at: number; action: "alert" | "block" }> = [
-    { at: warnAt, action: "alert" },
-  ];
-  if (blockStr.trim()) {
-    rules.push({ at: parseInt(blockStr, 10), action: "block" });
-  }
-  rules.sort((a, b) => a.at - b.at);
-
-  const slackWebhook = await rl.question("Slack webhook URL (optional): ");
-
-  const config: AccConfig = {
-    ...DEFAULT_CONFIG,
-    alerts: {
-      ...DEFAULT_CONFIG.alerts,
-      slack_webhook: slackWebhook || "",
-    },
-    key_budgets: {
-      [keyPrefix.trim()]: { ...base, rules },
-    },
-  };
-
-  saveConfig(config);
-
-  console.log(chalk.green(`\nConfig saved to ${getConfigPath()}`));
-  console.log(`\nNext: start the proxy and point your agent at it:\n`);
-  console.log(chalk.cyan("  tokenclaw proxy"));
-  console.log(chalk.cyan("  ANTHROPIC_BASE_URL=http://localhost:4040 claude"));
 }
 
 async function runScan(): Promise<void> {

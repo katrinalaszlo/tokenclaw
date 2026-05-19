@@ -30,107 +30,114 @@ tokenclaw gives you visibility and control over that spend before it becomes a s
 npm install -g tokenclaw-dev
 ```
 
-## See what you're spending
+---
+
+## Observe
+
+See what your AI tools are spending. No proxy, no config, nothing leaves your machine.
+
+### See your spend
 
 ```bash
 tokenclaw
 ```
 
-tokenclaw reads the session logs that AI tools store on your machine (Claude Code, Cursor, Windsurf, etc.), counts tokens, and estimates what each tool costs. Nothing is sent anywhere.
+Reads the session logs that AI tools store locally (Claude Code, Cursor, Windsurf, etc.), counts tokens, and estimates cost.
 
-## Get alerted when you spend too much
+```bash
+tokenclaw list models       # cost breakdown by model
+tokenclaw list projects     # cost breakdown by project
+tokenclaw list trends       # daily spend over time
+tokenclaw list usage        # token counts and breakdown
+tokenclaw list efficiency   # cache hit rates, cost per session
+```
+
+### Get alerts
 
 ```bash
 tokenclaw init
 ```
 
 ```
-What would you like to set up?
+tokenclaw setup
 
-  1) Alerts only — get notified when spend crosses a threshold
-  2) Alerts + hard cap — block requests when a per-key budget is exceeded
-     (option 2 requires running a local proxy)
-
-Choose [1/2]: 1
-
-— Alert setup —
-
-Daily spend threshold (USD) [100]: 50
+Daily spend alert threshold (USD) [100]: 50
 Slack webhook URL (optional): https://hooks.slack.com/services/T00/B00/xxx
 
 Config saved to ~/.tokenclaw/config.yaml
 ```
 
-This sets a $50/day budget (weekly is auto-set to 5x, so $250/week). When your total spend crosses either threshold, you get a Slack alert. ([Create a webhook here.](https://api.slack.com/messaging/webhooks))
-
-Start monitoring:
+Sets a $50/day budget (weekly auto-set to $250). When total API spend crosses the threshold, you get a Slack alert. ([Create a webhook here.](https://api.slack.com/messaging/webhooks))
 
 ```bash
 tokenclaw watch
 ```
 
-Re-scans your session logs every hour and alerts when thresholds are crossed. No proxy needed.
+Re-scans every hour. Alerts when thresholds are crossed.
 
-## Block requests when a key goes over budget (Experimental)
+---
 
-This requires the proxy. The proxy sits between your agents and the API, tracking spend per API key.
+## Control (Experimental)
 
-**Start the proxy:**
+Enforce per-key spend limits with a local proxy. Blocks requests when a budget is exceeded.
+
+### Start the proxy
 
 ```bash
 tokenclaw proxy
 ```
 
-**Point your agent at it:**
+### Point your agent at it
 
 ```bash
 ANTHROPIC_BASE_URL=http://localhost:4040 claude
 OPENAI_BASE_URL=http://localhost:4040 your-agent
 ```
 
-**Set a per-key budget:**
+### Set a per-key budget
 
 ```bash
 tokenclaw set --key sk-ant-research --budget 10/day --warn 80% --block 100%
 ```
 
-- At 80% ($8), you get a Slack alert.
-- At 100% ($10), the proxy returns a 429 and the request is stopped.
+- At 80% ($8) — Slack alert
+- At 100% ($10) — proxy returns 429, request stopped
+
+Nothing is blocked unless you add `--block`. Default is warn-only.
 
 ```bash
-tokenclaw keys
+tokenclaw keys           # view spend vs budget per key
 ```
-
-```
-sk-ant-research   $7.20 / $10 (72%)
-  warn at 80%
-  block at 100%
-
-sk-proj-deploy    $12.50 / $100 (12%)
-  warn at 80%
-```
-
-Nothing is blocked unless you explicitly add `--block`. Default is warn-only.
 
 <p align="center">
   <img src="docs/tokenclaw-proxy.jpg" alt="tokenclaw crab directing traffic between Anthropic and OpenAI" width="600">
 </p>
 
-Auto-detects provider from request path: `/v1/messages` → Anthropic, `/v1/chat/completions` → OpenAI (also Groq, Together, Fireworks).
+Auto-detects provider: `/v1/messages` → Anthropic, `/v1/chat/completions` → OpenAI (also Groq, Together, Fireworks).
+
+---
 
 ## Commands
+
+### Observe
 
 | Command | What it does |
 |---|---|
 | `tokenclaw` | Scan local AI tools, show spend |
-| `tokenclaw watch` | Monitor spend, send alerts hourly |
-| `tokenclaw proxy` | Start the per-key enforcement proxy |
-| `tokenclaw set` | Set a per-key budget (requires proxy) |
-| `tokenclaw keys` | View spend vs budget per key |
+| `tokenclaw list <view>` | Detailed views: models, projects, trends, usage, efficiency |
+| `tokenclaw init` | Set up alerts (daily budget, Slack) |
+| `tokenclaw watch` | Monitor spend, alert hourly |
 | `tokenclaw status` | Current spend + alert status |
-| `tokenclaw init` | Re-run setup (daily budget, Slack) |
 | `tokenclaw ack` | Silence alerts for 24h |
 | `tokenclaw config` | Show current config |
+
+### Control
+
+| Command | What it does |
+|---|---|
+| `tokenclaw proxy` | Start per-key enforcement proxy |
+| `tokenclaw set` | Set per-key budget with warn/block rules |
+| `tokenclaw keys` | View spend vs budget per key |
 
 ## Uninstall
 
