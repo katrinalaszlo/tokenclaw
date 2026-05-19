@@ -171,18 +171,24 @@
     </div>
 
     <div class="card" style="margin-bottom:16px;">
-      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:13px;line-height:2;">
-        <div><span style="color:var(--success);">$</span> tokenclaw set --key sk-ant-proj-research --budget 10/day</div>
-        <div><span style="color:var(--success);">$</span> tokenclaw set --key sk-proj-deploy --budget 100/day</div>
-        <div><span style="color:var(--success);">$</span> tokenclaw proxy</div>
+      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:13px;line-height:2;display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div><span style="color:var(--success);">$</span> tokenclaw set --key sk-ant-proj-research --budget 10/day</div>
+          <div><span style="color:var(--success);">$</span> tokenclaw set --key sk-proj-deploy --budget 100/day</div>
+          <div><span style="color:var(--success);">$</span> tokenclaw proxy</div>
+        </div>
+        <button onclick="navigator.clipboard.writeText('tokenclaw set --key sk-ant-proj-research --budget 10/day\ntokenclaw set --key sk-proj-deploy --budget 100/day\ntokenclaw proxy')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:var(--font);flex-shrink:0;margin-left:12px;">Copy</button>
       </div>
     </div>
 
     <div class="card" style="margin-bottom:16px;">
       <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;">Then point your agents at it</div>
-      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:13px;line-height:2;">
-        <div><span style="color:var(--success);">$</span> ANTHROPIC_BASE_URL=http://localhost:4040 claude</div>
-        <div><span style="color:var(--success);">$</span> OPENAI_BASE_URL=http://localhost:4040 your-gpt-agent</div>
+      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:13px;line-height:2;display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div><span style="color:var(--success);">$</span> ANTHROPIC_BASE_URL=http://localhost:4040 claude</div>
+          <div><span style="color:var(--success);">$</span> OPENAI_BASE_URL=http://localhost:4040 your-gpt-agent</div>
+        </div>
+        <button onclick="navigator.clipboard.writeText('ANTHROPIC_BASE_URL=http://localhost:4040 claude\nOPENAI_BASE_URL=http://localhost:4040 your-gpt-agent')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:var(--font);flex-shrink:0;margin-left:12px;">Copy</button>
       </div>
     </div>
 
@@ -217,5 +223,15 @@
     </div>
   </footer>
 
+<script>
+document.querySelectorAll('button[onclick*="clipboard"]').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const orig = this.textContent;
+    this.textContent = 'Copied!';
+    this.style.color = 'var(--success)';
+    setTimeout(() => { this.textContent = orig; this.style.color = 'var(--text-muted)'; }, 1500);
+  });
+});
+</script>
 </body>
 </html>
