@@ -73,6 +73,9 @@
     .step-code .m { color: var(--muted); }
     .step-code .r { color: var(--danger); }
     .step-code .y { color: var(--warning); }
+    .step-code { position: relative; }
+    .copy-btn { position: absolute; top: 8px; right: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; padding: 3px 8px; color: var(--muted); font-size: 10px; cursor: pointer; font-family: var(--font); opacity: 0; transition: opacity 0.15s; }
+    .step-code:hover .copy-btn { opacity: 1; }
 
     /* How it works image */
     .how-img { text-align: center; padding: 20px 0 40px; }
@@ -132,12 +135,14 @@
     </section>
 
     <section class="section">
+      <h2>What you get</h2>
       <div class="steps">
 
         <div class="step">
           <div class="step-label">View</div>
           <div class="step-title">See what each API key is spending.</div>
           <div class="step-code">
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('tokenclaw keys');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
             <span class="g">$</span> tokenclaw keys<br>
             <br>
             <span class="m">sk-ant-research   $7.20 / $10 (72%)</span><br>
@@ -149,6 +154,7 @@
           <div class="step-label">Warn</div>
           <div class="step-title">Get alerts when spend crosses thresholds you set.</div>
           <div class="step-code">
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('tokenclaw set --key sk-ant-research --budget 10/day --warn 80%');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
             <span class="g">$</span> tokenclaw set --key sk-ant-research --budget 10/day --warn 80%<br>
             <br>
             <span class="y">WARNING: sk-ant-research at 84% of budget</span>
@@ -159,6 +165,7 @@
           <div class="step-label">Block</div>
           <div class="step-title">Hard stop when limits are exceeded. Nothing blocked unless you say so.</div>
           <div class="step-code">
+            <button class="copy-btn" onclick="navigator.clipboard.writeText('tokenclaw set --key sk-ant-research --budget 10/day --warn 80% --block 100%');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
             <span class="g">$</span> tokenclaw set --key sk-ant-research --budget 10/day --warn 80% --block 100%<br>
             <br>
             <span class="r">BLOCKED — $10.42 / $10.00 day</span>
