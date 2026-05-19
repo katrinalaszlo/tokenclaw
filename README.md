@@ -4,7 +4,7 @@
   <img src="docs/tokenclaw-logo.jpg" alt="tokenclaw — claw back your agent spend" width="600">
 </p>
 
-View, alert, and control AI agent spend in real time.
+View, alert, and control AI API spend in real time.
 
 AI agents do not stop when something goes wrong. They keep running, retrying, and silently burning through API budgets.
 
@@ -18,7 +18,7 @@ AI agents do not stop when something goes wrong. They keep running, retrying, an
   <img src="docs/tokenclaw-overnight.jpg" alt="11pm: sleeping while agent runs. 6am: $2,847 bill. should've used tokenclaw." width="400">
 </p>
 
-tokenclaw gives you visibility and control over that spend before it becomes a surprise bill.
+tokenclaw tracks your API spend and gives you visibility and control before it becomes a surprise bill.
 
 <p align="center">
   <img src="docs/tokenclaw-meme.jpg" alt="tokenclaw crab getting yanked off stage — wait I can explain" width="500">
@@ -42,11 +42,11 @@ tokenclaw view usage              # token counts
 tokenclaw view efficiency         # cache rates, cost per session
 ```
 
-Reads session logs that AI tools store locally (Claude Code, Cursor, Windsurf, etc.), counts tokens, estimates cost. API-billed tools only. Nothing leaves your machine.
+Reads session logs stored locally by AI tools, counts tokens, estimates cost at API rates. Only shows API-billed spend (OpenClaw, custom API keys, etc.) — subscription tools like Claude Code Pro or Cursor Pro are excluded since they have flat monthly costs. Nothing leaves your machine.
 
 ---
 
-## Alert — get notified when you spend too much
+## Alert — get notified when API spend crosses a threshold
 
 Connect Slack:
 
@@ -78,7 +78,7 @@ tokenclaw alert ack               # silence alerts for 24h
 
 ---
 
-## Control — block requests when a key goes over budget
+## Control — block API requests when a key goes over budget
 
 Requires the proxy. The proxy sits between your agents and the API, tracks spend per key, and blocks requests when limits are hit.
 
