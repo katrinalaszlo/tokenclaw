@@ -154,6 +154,28 @@ alerts:
 
 Node.js 18+
 
+## Uninstall
+
+```bash
+npm uninstall -g tokenclaw-dev
+rm -rf ~/.tokenclaw    # removes config, database, and alert state
+```
+
+## Troubleshooting
+
+```bash
+tokenclaw config       # show current config
+tokenclaw ack          # silence all active alerts
+tokenclaw keys         # check key budgets and spend
+```
+
+Data lives in `~/.tokenclaw/`:
+- `config.yaml` — thresholds, budgets, Slack webhook
+- `data.db` — spend history (SQLite)
+- `ack-state.json` — acknowledged alerts
+
+To reset everything: `rm -rf ~/.tokenclaw`
+
 ## License
 
 MIT

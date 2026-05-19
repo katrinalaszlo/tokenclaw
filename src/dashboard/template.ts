@@ -307,7 +307,7 @@ export function generateDashboard(data: DashboardData): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard — Agent Cost Control</title>
+<title>Dashboard — tokenclaw</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"><\/script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1304,7 +1304,7 @@ a:hover {
     <!-- Sidebar Navigation -->
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <h1><span class="logo-icon">ACC</span> Agent Cost Control</h1>
+        <h1><span class="logo-icon" style="font-size:14px;">TC</span> tokenclaw</h1>
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">
@@ -1314,26 +1314,10 @@ a:hover {
             Dashboard
           </a>
         </div>
-        <div class="nav-section">
-          <div class="nav-section-label">Manage</div>
-          <a href="#" class="nav-item">
-            <span class="nav-icon">&#9675;</span>
-            Agents
-          </a>
-          <a href="#" class="nav-item">
-            <span class="nav-icon">&#9633;</span>
-            Budgets
-          </a>
-          <a href="#" class="nav-item">
-            <span class="nav-icon">&#9651;</span>
-            Alerts
-            ${activeAlerts.length > 0 ? `<span class="nav-badge">${activeAlerts.length}</span>` : ""}
-          </a>
-        </div>
       </nav>
       <div class="sidebar-footer">
-        <div class="org-name">Agent Cost Control</div>
-        <div class="org-plan">Team Plan &middot; ${data.tools.length} tools</div>
+        <div class="org-name">tokenclaw</div>
+        <div class="org-plan">${data.tools.length} tools detected</div>
       </div>
     </aside>
 
@@ -1372,11 +1356,6 @@ a:hover {
           <div class="metric-value">${fmtCost(data.burnRate.average)}</div>
           <div class="metric-change neutral">30-day rolling</div>
         </div>
-        <div class="metric-card">
-          <div class="metric-label">Active Alerts</div>
-          <div class="metric-value ${activeAlerts.length > 0 ? "red" : "green"}">${activeAlerts.length}</div>
-          ${ackedAlerts.length > 0 ? `<div class="metric-change neutral">${ackedAlerts.length} acknowledged</div>` : ""}
-        </div>
       </div>
 
       <!-- Spend by Model + Spend Trend -->
@@ -1386,8 +1365,8 @@ a:hover {
         <div class="card">
           <div class="card-header">
             <div>
-              <div class="card-title">Spend by Model</div>
-              <div class="card-subtitle">All tracked models</div>
+              <div class="card-title">Token Consumption by Model</div>
+              <div class="card-subtitle">Estimated at API rates</div>
             </div>
           </div>
           ${providerBarsHtml}
@@ -1425,14 +1404,6 @@ a:hover {
           : ""
       }
 
-      <!-- Alerts -->
-      <div class="section-heading">
-        <h3>${activeAlerts.length > 0 ? '<span class="alert-pulse"></span>' : ""}Alerts</h3>
-        ${activeAlerts.length > 0 ? `<span class="section-badge">${activeAlerts.length}</span>` : ""}
-      </div>
-      ${filterBarHtml}
-      ${alertSectionHtml}
-
       <!-- Agent Cost Table -->
       <div class="card mt-24" style="padding:0;">
         <div style="padding:24px 24px 0;">
@@ -1456,14 +1427,14 @@ a:hover {
             </tr>
           </thead>
           <tbody>
-            ${agentTableRows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:40px;">No tools detected. Run <code>acc scan</code> to discover AI tools.</td></tr>'}
+            ${agentTableRows || '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:40px;">No tools detected. Run <code>tokenclaw</code> to scan.</td></tr>'}
           </tbody>
         </table>
       </div>
 
       <!-- Footer -->
       <div class="footer">
-        <p>Generated ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} by <a href="https://github.com/katrinalaszlo/agent-cost-control">agent-cost-control</a></p>
+        <p>Generated ${new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })} by <a href="https://github.com/katrinalaszlo/tokenclaw">tokenclaw</a></p>
       </div>
 
     </main>
