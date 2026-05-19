@@ -170,58 +170,44 @@ function isFirstRun(): boolean {
 
 function printScanResults(
   found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
-  notFound: string[],
+  _notFound: string[],
 ): void {
   if (found.length === 0) {
     console.log(chalk.yellow("No AI tool usage data found."));
-    if (notFound.length > 0) {
-      console.log(chalk.dim(`Checked: ${notFound.join(", ")}`));
-    }
     return;
   }
 
-  let totalActual = 0;
-  let totalConsumed = 0;
-  for (const t of found) {
-    totalConsumed += t.totalCost;
-    totalActual +=
-      t.billingType === "subscription" && t.planCost ? t.planCost : t.totalCost;
-  }
+  const apiTools = found.filter((t) => t.billingType === "api");
+  const subTools = found.filter((t) => t.billingType === "subscription");
 
-  console.log(
-    chalk.bold("What you paid: ") + chalk.cyan(fmtUSD(totalActual) + "/mo"),
-  );
-  console.log(
-    chalk.dim(`What you consumed: ${fmtUSD(totalConsumed)} at API rates\n`),
-  );
-
-  console.log(chalk.bold.underline("Tools found:"));
-  for (const t of found.sort((a, b) => b.totalCost - a.totalCost)) {
-    if (t.billingType === "subscription") {
-      console.log(
-        `  ${chalk.white(t.tool.padEnd(20))} ${chalk.green(t.planName + " $" + t.planCost + "/mo").padStart(10)}` +
-          chalk.dim(`  ${t.sessions} sessions`) +
-          chalk.dim(`  consumed ~${fmtUSD(t.totalCost)} at API rates`),
-      );
-    } else {
+  if (apiTools.length > 0) {
+    const apiTotal = apiTools.reduce((s, t) => s + t.totalCost, 0);
+    console.log(chalk.bold("API spend: ") + chalk.cyan(fmtUSD(apiTotal)));
+    for (const t of apiTools.sort((a, b) => b.totalCost - a.totalCost)) {
       console.log(
         `  ${chalk.white(t.tool.padEnd(20))} ${chalk.cyan(fmtUSD(t.totalCost).padStart(10))}` +
           chalk.dim(
             `  ${t.sessions} sessions  ${fmtTokens(t.inputTokens + t.outputTokens)} tokens`,
-          ) +
-          chalk.yellow("  API"),
+          ),
       );
     }
+    console.log();
+  }
 
-    const topProjects = t.projects.slice(0, 3);
-    for (const p of topProjects) {
-      console.log(chalk.dim(`    ${p.name.padEnd(30)} ${fmtUSD(p.cost)}`));
+  if (subTools.length > 0) {
+    console.log(chalk.bold("Subscriptions:"));
+    for (const t of subTools) {
+      console.log(
+        `  ${chalk.white(t.tool.padEnd(20))} ${chalk.green(t.planName + " $" + t.planCost + "/mo")}` +
+          chalk.dim(`  ${t.sessions} sessions`),
+      );
     }
+    console.log();
   }
 
-  if (notFound.length > 0) {
-    console.log(chalk.dim(`\nNot found: ${notFound.join(", ")}`));
-  }
+  console.log(
+    chalk.dim(`Run ${chalk.white("tokenclaw init")} to set up spend alerts.`),
+  );
 }
 
 async function runFirstRun(): Promise<void> {
@@ -369,7 +355,6 @@ async function runScan(): Promise<void> {
 
   printScanResults(found, notFound);
   persistScanToDB(found);
-  console.log(chalk.dim("\nSnapshots saved."));
 }
 
 async function runWatch(once: boolean): Promise<void> {
