@@ -125,27 +125,51 @@
 
   <section class="how-section" id="how-it-works">
     <div class="section-label">HOW IT WORKS</div>
-    <h2 class="section-title">Set budgets. Start proxy. Sleep easy.</h2>
+    <h2 class="section-title">See what you're spending. Then stop the bleeding.</h2>
     <div class="steps">
       <div class="step">
         <div class="step-number">1</div>
         <div class="step-content">
-          <h3>Give each key a budget</h3>
-          <p><code>tokenclaw set --key sk-ant-proj-research --budget 10/day</code> &mdash; the research agent gets $10/day. The deploy agent gets $100. A runaway on one can't touch the other.</p>
+          <h3>See the damage</h3>
+          <p><code>npx tokenclaw-dev</code> scans every AI tool on your machine and shows you what you've been spending. No API keys needed. Just run it.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">2</div>
         <div class="step-content">
-          <h3>Start the proxy</h3>
-          <p><code>tokenclaw proxy</code> &mdash; runs on localhost:4040. Set <code>ANTHROPIC_BASE_URL</code> or <code>OPENAI_BASE_URL</code> to point at it. One env var per agent. That's it.</p>
+          <h3>Set per-key budgets</h3>
+          <p><code>tokenclaw set --key sk-ant-proj-research --budget 10/day</code> &mdash; the research agent gets $10/day. The deploy agent gets $100. A runaway on one can't touch the other.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">3</div>
         <div class="step-content">
-          <h3>Go to sleep</h3>
-          <p>The proxy watches every request. Budget hit? Blocked. Slack alert fired. The 429 response tells the agent exactly what happened and the CLI command to increase the limit. No surprises in the morning.</p>
+          <h3>Start the proxy</h3>
+          <p><code>tokenclaw proxy</code> &mdash; runs on localhost:4040. Point your agents at it. Budget hit? Request blocked. Slack alert fired. The agent gets a 429 with the exact command to increase the limit.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scan terminal demo -->
+    <div style="max-width:700px;margin:32px auto 0;">
+      <div class="hero-terminal">
+        <div class="terminal-bar">
+          <span class="terminal-dot" style="background:#ff5f57;"></span>
+          <span class="terminal-dot" style="background:#febc2e;"></span>
+          <span class="terminal-dot" style="background:#28c840;"></span>
+          <span class="terminal-title">step 1: see what you're spending</span>
+        </div>
+        <div class="terminal-body">
+          <div><span class="line-prompt">$ </span><span class="line-cmd">npx tokenclaw-dev</span></div>
+          <div style="margin-top:12px;"><span class="line-output">  Scanning AI tools...</span></div>
+          <div style="margin-top:8px;"><span class="line-output">  What you paid: </span><span class="line-cost">$200/mo</span><span class="line-output"> (Max subscription)</span></div>
+          <div><span class="line-output">  What you consumed: </span><span class="line-cost">~$12,570</span><span class="line-output"> at API rates</span></div>
+          <div style="margin-top:12px;"><span class="line-output">  found  </span><span class="line-tool">Claude Code</span><span class="line-output">     416 sessions    </span><span class="line-cost">~$12,570</span></div>
+          <div><span class="line-output">    tanso-dashboard                    </span><span class="line-cost">~$4,200</span></div>
+          <div><span class="line-output">    tanso-core                         </span><span class="line-cost">~$3,800</span></div>
+          <div><span class="line-output">    personal-site                      </span><span class="line-cost">~$890</span></div>
+          <div style="margin-top:8px;"><span class="line-output">  found  </span><span class="line-tool">OpenClaw</span><span class="line-output">          23 sessions    </span><span class="line-cost">~$340</span></div>
+          <div><span class="line-output">  found  </span><span class="line-tool">Cursor</span><span class="line-output">            89 sessions    </span><span style="color:var(--success);">Pro $20/mo</span></div>
         </div>
       </div>
     </div>
