@@ -42,19 +42,17 @@ tokenclaw sits between your agents and model providers and gives you three thing
 npm install -g tokenclaw-dev
 ```
 
-## 1. View your spend
+## 1. Start the proxy
 
 ```bash
-tokenclaw keys
+tokenclaw proxy
 ```
 
-```
-sk-ant-research   $7.20 / $10 (72%)
-  warn at 80%
-  block at 100%
+Point your agent at it:
 
-sk-proj-deploy    $12.50 / $100 (12%)
-  warn at 80%
+```bash
+ANTHROPIC_BASE_URL=http://localhost:4040 claude
+OPENAI_BASE_URL=http://localhost:4040 your-agent
 ```
 
 ## 2. Set alerts and limits
@@ -73,17 +71,19 @@ tokenclaw set --key sk-ant-research --budget 10/day --warn 50% --warn 80%
 
 Nothing is blocked unless you explicitly add `--block`.
 
-## 3. Start the proxy
+## 3. View your spend
 
 ```bash
-tokenclaw proxy
+tokenclaw keys
 ```
 
-Point your agent at it:
+```
+sk-ant-research   $7.20 / $10 (72%)
+  warn at 80%
+  block at 100%
 
-```bash
-ANTHROPIC_BASE_URL=http://localhost:4040 claude
-OPENAI_BASE_URL=http://localhost:4040 your-agent
+sk-proj-deploy    $12.50 / $100 (12%)
+  warn at 80%
 ```
 
 ## What happens when limits are hit
