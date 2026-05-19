@@ -1,5 +1,9 @@
 # tokenclaw
 
+<p align="center">
+  <img src="docs/tokenclaw-banner.jpg" alt="tokenclaw — claw back your agent spend" width="600">
+</p>
+
 Claw back your agent spend.
 
 You left an agent running overnight. You woke up to a $280 bill. Your provider's "spending limit" was monthly and didn't kick in. OpenAI silently converted their hard caps to email alerts. Anthropic only has workspace-level limits. Neither has per-key. Neither has daily.
