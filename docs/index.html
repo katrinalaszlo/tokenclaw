@@ -23,18 +23,15 @@
     </ul>
   </nav>
 
-  <!-- Hero: logo + one line + copy-paste install -->
   <section class="hero">
-    <img src="tokenclaw-banner.jpg" alt="tokenclaw" style="max-width:500px;width:100%;margin:0 auto 24px;display:block;border-radius:12px;">
-    <h1>Claw back your <span class="highlight">agent spend.</span></h1>
-    <p class="hero-sub">Per-key daily budgets for AI agents. Hard stop when the budget's gone.</p>
+    <div class="hero-badge">Open Source</div>
+    <h1 style="font-size:1.4rem;font-weight:500;color:var(--text-secondary);margin-bottom:24px;">scan to see your agent spend</h1>
 
-    <div class="card" style="max-width:600px;margin:24px auto 0;">
-      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:14px;display:flex;align-items:center;justify-content:space-between;">
+    <div class="card" style="max-width:500px;margin:0 auto;">
+      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:15px;display:flex;align-items:center;justify-content:space-between;">
         <div><span style="color:var(--success);">$</span> <span style="color:var(--text-primary);">npx tokenclaw-dev</span></div>
         <button onclick="navigator.clipboard.writeText('npx tokenclaw-dev')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:var(--font);">Copy</button>
       </div>
-      <div style="font-size:12px;color:var(--text-muted);margin-top:8px;text-align:center;">scans your AI tools, shows what you're spending, opens a dashboard. no signup.</div>
     </div>
   </section>
 
