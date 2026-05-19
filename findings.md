@@ -36,3 +36,21 @@ Nobody in the 13+ companies building agent spend control does per-key governance
 
 ### Key question for Phase 1
 Do JSONL session files contain API key identifiers? Determines if per-key tracking works locally or needs billing API.
+
+## Dashboard template analysis (2026-05-19)
+
+### Sidebar links (template.ts:1305-1337)
+All use href="#" — none functional. Agents, Budgets, Alerts pages don't exist.
+
+### Alert assembly (cli.ts:441-464)
+Alerts come from evaluateAlerts() which checks spend against default thresholds (daily: $100, weekly: $500). Even without user configuring alerts, default thresholds trigger them. This is why "Active Alerts: 2" shows.
+
+### Cost display issue
+- totalActualSpend in runDashboard() correctly uses planCost for subscription tools
+- But "Today's Spend" uses getTodaySpend() from DB — sums ALL cost_snapshots including token-rate estimates for subscription tools
+- Model breakdown shows token consumption labeled as dollar amounts without "at API rates" qualifier
+
+### README gaps
+- No uninstall instructions
+- No data cleanup (where ~/.tokenclaw lives, how to reset)
+- No alert removal/clearing docs
