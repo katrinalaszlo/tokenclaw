@@ -42,40 +42,41 @@ tokenclaw sits between your agents and model providers and gives you three thing
 npm install -g tokenclaw-dev
 ```
 
-## Quick start: alerts only
+## Quick start
 
-No proxy needed. First run walks you through setup:
+### 1. See what you're spending
 
 ```bash
 tokenclaw
 ```
 
-```
-Scanning local AI tools...
-
-What you paid: $249/mo
-What you consumed: $187.40 at API rates
-
-Tools found:
-  Claude Code            Pro $100/mo  34 sessions  consumed ~$142.50 at API rates
-  Cursor                 Pro $20/mo   12 sessions  consumed ~$44.90 at API rates
-
-Welcome to tokenclaw! No config found — let's set one up.
-
-Daily spend threshold (USD) [100]: 50
-Slack webhook URL (optional):
-
-Config saved to ~/.tokenclaw/config.yaml
-
-Run `tokenclaw watch` to start monitoring.
-Run `tokenclaw proxy` when you're ready for per-key budgets + hard blocking.
-```
+Scans your machine for AI tools and shows what each one costs. No config needed.
 
 Detects: Claude Code, OpenClaw, Cursor, Windsurf, Claude Desktop, Cline, Roo Code, Aider, Continue.dev.
 
-## Full control: per-key budgets + blocking
+### 2. Set an alert
 
-Start the proxy to track spend per API key and enforce hard limits:
+```bash
+tokenclaw set --key sk-ant-research --budget 10/day --warn 80%
+```
+
+You'll get a Slack alert when that key hits 80% of its daily budget. Nothing is blocked.
+
+### 3. Monitor
+
+```bash
+tokenclaw watch
+```
+
+Checks spend every hour. Fires alerts when thresholds are crossed.
+
+That's it. No proxy needed for alerts.
+
+---
+
+## Want hard limits? Add the proxy
+
+The proxy sits between your agents and the API. It can block requests when a budget is exceeded.
 
 ```bash
 tokenclaw proxy
@@ -88,13 +89,13 @@ ANTHROPIC_BASE_URL=http://localhost:4040 claude
 OPENAI_BASE_URL=http://localhost:4040 your-agent
 ```
 
-Set per-key rules:
+Add a block rule:
 
 ```bash
 tokenclaw set --key sk-ant-research --budget 10/day --warn 80% --block 100%
 ```
 
-View spend:
+View spend per key:
 
 ```bash
 tokenclaw keys
