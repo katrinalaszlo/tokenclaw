@@ -124,16 +124,20 @@ function dbAlertsToHistory(
   });
 }
 
-/** Convert scan results to the CostSnapshot shape the engine expects. */
+/** Convert scan results to the CostSnapshot shape the engine expects.
+ *  Only includes API-billed tools — subscription tools have flat monthly
+ *  costs that don't map to daily/weekly spend thresholds. */
 function scanToEngineSnapshots(
   found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
 ): EngineCostSnapshot[] {
-  return found.map((t) => ({
-    provider: "local",
-    tool: t.tool,
-    date: todayISO(),
-    amount_usd: t.totalCost,
-  }));
+  return found
+    .filter((t) => t.billingType === "api")
+    .map((t) => ({
+      provider: "local",
+      tool: t.tool,
+      date: todayISO(),
+      amount_usd: t.totalCost,
+    }));
 }
 
 /** Save scan results to DB as cost snapshots. */
