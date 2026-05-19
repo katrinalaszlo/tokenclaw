@@ -1,1 +1,6 @@
+node_modules/
+dist/
 .herenow/
+.gstack/
+.DS_Store
+*.tgz
