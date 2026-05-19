@@ -40,18 +40,28 @@ tokenclaw reads the session logs that AI tools store on your machine (Claude Cod
 
 ## Get alerted when you spend too much
 
-Edit `~/.tokenclaw/config.yaml` (created on first run, or run `tokenclaw init`):
-
-```yaml
-thresholds:
-  daily: 50
-  weekly: 250
-
-alerts:
-  slack_webhook: "https://hooks.slack.com/services/T00/B00/xxx"
+```bash
+tokenclaw init
 ```
 
-When your total spend crosses $50/day or $250/week, tokenclaw sends a Slack alert. ([Create a webhook here.](https://api.slack.com/messaging/webhooks))
+```
+What would you like to set up?
+
+  1) Alerts only — get notified when spend crosses a threshold
+  2) Alerts + hard cap — block requests when a per-key budget is exceeded
+     (option 2 requires running a local proxy)
+
+Choose [1/2]: 1
+
+— Alert setup —
+
+Daily spend threshold (USD) [100]: 50
+Slack webhook URL (optional): https://hooks.slack.com/services/T00/B00/xxx
+
+Config saved to ~/.tokenclaw/config.yaml
+```
+
+This sets a $50/day budget (weekly is auto-set to 5x, so $250/week). When your total spend crosses either threshold, you get a Slack alert. ([Create a webhook here.](https://api.slack.com/messaging/webhooks))
 
 Start monitoring:
 
