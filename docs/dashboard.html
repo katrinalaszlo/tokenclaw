@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Overview — agentcap</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .range-btn, .filter-btn {
+      padding: 4px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border);
+      background: var(--bg-hover); color: var(--text-muted); font-size: 11px; font-weight: 600;
+      font-family: var(--font); cursor: pointer; transition: all 150ms;
+    }
+    .range-btn:hover, .filter-btn:hover { color: var(--text-primary); border-color: var(--text-muted); }
+    .range-btn.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(34, 211, 238, 0.3); }
+    .filter-btn.active { background: var(--accent-dim); color: var(--accent); border-color: rgba(34, 211, 238, 0.3); }
+  </style>
+</head>
+<body>
+
+  <div class="app-layout">
+    <main class="main-content">
+
+      <div class="page-header">
+        <div class="page-header-row">
+          <div>
+            <h2>Overview</h2>
+            <p>Last scanned 3 minutes ago</p>
+          </div>
+          <button class="btn btn-secondary" style="font-family:var(--mono);font-size:12px;">$ agentcap scan</button>
+        </div>
+      </div>
+
+      <!-- Active alerts banner -->
+      <div class="alert-card active-alert" style="margin-bottom:24px;">
+        <div class="alert-dot pulsing"></div>
+        <div class="alert-body">
+          <div class="alert-title">Daily spend alert &mdash; $287 today (normal: ~$90)</div>
+          <div class="alert-desc">OpenClaw agent "threat-intel" spent $194 in last 6 hours. Unacknowledged.</div>
+          <div class="alert-escalation">Next alert in 3h 42m &middot; Escalation level 1 of 3</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:flex-start;">
+          <button class="btn btn-secondary btn-sm">Acknowledge</button>
+          <a href="alerts.html" class="btn btn-sm" style="color:var(--text-muted);font-size:12px;">View all</a>
+        </div>
+      </div>
+
+      <!-- Top metrics -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Today (estimated)</div>
+          <div class="metric-value">~$287</div>
+          <div class="metric-change up">3.2x daily avg</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">This Week (estimated)</div>
+          <div class="metric-value">~$848</div>
+          <div class="metric-change neutral">on pace with last week</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">This Month (estimated)</div>
+          <div class="metric-value">~$2,570</div>
+          <div class="metric-change down">-12% vs last month</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Tools Found</div>
+          <div class="metric-value" style="font-size:28px;">3</div>
+          <div class="metric-change neutral">Claude Code, OpenClaw, Cursor</div>
+        </div>
+      </div>
+
+      <!-- Tool breakdown + Trend -->
+      <div class="grid-2" style="margin-bottom:20px;">
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Token Cost by Tool</div>
+              <div class="card-subtitle">Estimated from session logs at list price</div>
+            </div>
+          </div>
+
+          <div class="tool-bar">
+            <div class="tool-label"><span class="badge api" style="padding:2px 6px;font-size:10px;">API</span> Claude Code</div>
+            <div class="tool-track"><div class="tool-fill" style="width:78%;background:var(--accent);">78%</div></div>
+            <div class="tool-amount">~$2,005</div>
+          </div>
+          <div class="tool-bar">
+            <div class="tool-label"><span class="badge api" style="padding:2px 6px;font-size:10px;">API</span> OpenClaw</div>
+            <div class="tool-track"><div class="tool-fill" style="width:17%;background:var(--warning);"></div></div>
+            <div class="tool-amount">~$440</div>
+          </div>
+          <div class="tool-bar">
+            <div class="tool-label"><span class="badge sub" style="padding:2px 6px;font-size:10px;">Sub</span> Cursor</div>
+            <div class="tool-track"><div class="tool-fill" style="width:5%;background:var(--success);"></div></div>
+            <div class="tool-amount">$20/mo flat</div>
+          </div>
+
+          <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-subtle);">
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px;">Model breakdown (tokens x list price)</div>
+            <div style="display:flex;gap:16px;font-size:12px;font-family:var(--mono);">
+              <span style="color:var(--text-secondary);">Sonnet 4: <span style="color:var(--text-primary);">~$1,420</span></span>
+              <span style="color:var(--text-secondary);">Opus 4: <span style="color:var(--text-primary);">~$680</span></span>
+              <span style="color:var(--text-secondary);">Haiku: <span style="color:var(--text-primary);">~$345</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">Estimated Spend</div>
+              <div class="card-subtitle" id="trendSubtitle">Last 7 days &middot; All tools</div>
+            </div>
+            <div style="display:flex;gap:4px;">
+              <button class="range-btn" data-range="7">7d</button>
+              <button class="range-btn active" data-range="30">30d</button>
+              <button class="range-btn" data-range="90">90d</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;margin-bottom:16px;">
+            <button class="filter-btn active" data-tool="all">All Tools</button>
+            <button class="filter-btn" data-tool="claude-code">Claude Code</button>
+            <button class="filter-btn" data-tool="openclaw">OpenClaw</button>
+            <button class="filter-btn" data-tool="cursor">Cursor</button>
+          </div>
+          <div class="chart-container">
+            <canvas id="trendChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tool details table -->
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Discovered Tools</div>
+            <div class="card-subtitle">Auto-detected from local session files</div>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>Type</th>
+              <th>Sessions</th>
+              <th>Today (est.)</th>
+              <th>This Month (est.)</th>
+              <th>Data Source</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="tool-name">Claude Code</td>
+              <td><span class="badge api" style="padding:2px 8px;">API</span></td>
+              <td style="font-family:var(--mono);font-size:12px;">416</td>
+              <td style="font-family:var(--mono);font-size:12px;">~$42</td>
+              <td style="font-family:var(--mono);font-size:12px;">~$2,005</td>
+              <td style="font-size:12px;color:var(--text-muted);">~/.claude/projects/</td>
+            </tr>
+            <tr>
+              <td class="tool-name">OpenClaw</td>
+              <td><span class="badge api" style="padding:2px 8px;">API</span></td>
+              <td style="font-family:var(--mono);font-size:12px;">23</td>
+              <td style="font-family:var(--mono);font-size:12px;color:var(--danger);">~$194</td>
+              <td style="font-family:var(--mono);font-size:12px;">~$440</td>
+              <td style="font-size:12px;color:var(--text-muted);">~/.openclaw/agents/</td>
+            </tr>
+            <tr>
+              <td class="tool-name">Cursor</td>
+              <td><span class="badge sub" style="padding:2px 8px;">Sub</span></td>
+              <td style="font-family:var(--mono);font-size:12px;">89</td>
+              <td style="font-family:var(--mono);font-size:12px;color:var(--text-muted);">&mdash;</td>
+              <td style="font-family:var(--mono);font-size:12px;">$20/mo</td>
+              <td style="font-size:12px;color:var(--text-muted);">~/.cursor/projects/</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="nav.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      initNav('dashboard');
+
+      Chart.defaults.color = '#71717a';
+      Chart.defaults.borderColor = '#27272a';
+      Chart.defaults.font.family = "'Geist Sans', sans-serif";
+
+      // Mock data per tool, 90 days
+      var allData = {
+        'claude-code': [], 'openclaw': [], 'cursor': []
+      };
+      for (var i = 0; i < 90; i++) {
+        allData['claude-code'].push(Math.round(55 + Math.random() * 40 + (i === 89 ? 150 : 0)));
+        allData['openclaw'].push(Math.round(10 + Math.random() * 20 + (i === 89 ? 170 : 0)));
+        allData['cursor'].push(0.67);
+      }
+
+      function makeLabels(days) {
+        var labels = [];
+        for (var i = days - 1; i >= 0; i--) {
+          var d = new Date(); d.setDate(d.getDate() - i);
+          labels.push((d.getMonth() + 1) + '/' + d.getDate());
+        }
+        return labels;
+      }
+
+      function getData(tool, days) {
+        var src;
+        if (tool === 'all') {
+          src = allData['claude-code'].map(function(v, i) {
+            return v + allData['openclaw'][i] + allData['cursor'][i];
+          });
+        } else {
+          src = allData[tool];
+        }
+        return src.slice(-days);
+      }
+
+      function burnRate(data) {
+        var recent = data.slice(-7);
+        var avg = recent.reduce(function(a,b){return a+b;}, 0) / recent.length;
+        return Math.round(avg);
+      }
+
+      var currentRange = 30;
+      var currentTool = 'all';
+      var chart = null;
+
+      function renderChart() {
+        var labels = makeLabels(currentRange);
+        var data = getData(currentTool, currentRange);
+        var rate = burnRate(data);
+        var burnLine = data.map(function() { return rate; });
+
+        var toolName = currentTool === 'all' ? 'All tools' :
+          currentTool === 'claude-code' ? 'Claude Code' :
+          currentTool === 'openclaw' ? 'OpenClaw' : 'Cursor';
+
+        document.getElementById('trendSubtitle').innerHTML =
+          'Last ' + currentRange + ' days &middot; ' + toolName +
+          ' &middot; Burn rate: <span style="color:var(--accent);font-family:var(--mono)">~$' + rate + '/day</span>';
+
+        if (chart) chart.destroy();
+
+        chart = new Chart(document.getElementById('trendChart'), {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [
+              {
+                label: 'Daily spend',
+                data: data,
+                borderColor: '#22d3ee',
+                backgroundColor: 'rgba(34, 211, 238, 0.08)',
+                fill: true, tension: 0.3, borderWidth: 2,
+                pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: '#22d3ee'
+              },
+              {
+                label: 'Burn rate (7-day avg)',
+                data: burnLine,
+                borderColor: 'rgba(245, 158, 11, 0.5)',
+                borderWidth: 1, borderDash: [6, 4],
+                pointRadius: 0, fill: false, tension: 0
+              }
+            ]
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: {
+              x: { grid: { color: '#1c1c1f' }, ticks: { maxTicksLimit: 8, font: { size: 11 } } },
+              y: { grid: { color: '#1c1c1f' }, ticks: { font: { size: 11 }, callback: function(v){return '~$'+v;} } }
+            },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#18181b', borderColor: '#27272a', borderWidth: 1,
+                titleColor: '#fafafa', bodyColor: '#a1a1aa', padding: 10,
+                callbacks: {
+                  label: function(ctx) {
+                    if (ctx.datasetIndex === 1) return 'Burn rate: ~$' + ctx.raw + '/day';
+                    return '~$' + ctx.raw;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      // Range buttons
+      document.querySelectorAll('.range-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.range-btn').forEach(function(b){b.classList.remove('active');});
+          btn.classList.add('active');
+          currentRange = parseInt(btn.dataset.range);
+          renderChart();
+        });
+      });
+
+      // Tool filter buttons
+      document.querySelectorAll('.filter-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+          btn.classList.add('active');
+          currentTool = btn.dataset.tool;
+          renderChart();
+        });
+      });
+
+      renderChart();
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,51 @@
+{
+  "name": "agentcap",
+  "version": "0.1.0",
+  "description": "Credit card fraud alerts for AI spend. Scans your AI tools, shows what you're spending, yells when something's wrong.",
+  "type": "module",
+  "keywords": [
+    "ai",
+    "cost",
+    "spend",
+    "claude",
+    "openai",
+    "agents",
+    "monitoring",
+    "alerts",
+    "cli"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/katrinalaszlo/agent-spend"
+  },
+  "bin": {
+    "agentcap": "./bin/acc.js"
+  },
+  "files": [
+    "dist",
+    "bin"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js"
+  },
+  "author": "Kat Laszlo",
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "open": "^10.1.0",
+    "yaml": "^2.4.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

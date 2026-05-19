@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerts — agentcap</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div class="app-layout">
+    <main class="main-content">
+
+      <div class="page-header">
+        <div class="page-header-row">
+          <div>
+            <h2>Alerts</h2>
+            <p>Escalating alerts that require acknowledgment</p>
+          </div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-secondary btn-sm" style="font-family:var(--mono);font-size:11px;">$ agentcap alerts config</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alert metrics -->
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-label">Unacknowledged</div>
+          <div class="metric-value danger">2</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Acknowledged (active)</div>
+          <div class="metric-value success">1</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Resolved This Week</div>
+          <div class="metric-value" style="color:var(--text-secondary);">4</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-label">Threshold</div>
+          <div class="metric-value accent">$100<span style="font-size:14px;font-weight:400;">/day</span></div>
+        </div>
+      </div>
+
+      <!-- Active: unacknowledged -->
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+        Unacknowledged
+        <span style="background:var(--danger-dim);color:var(--danger);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">2</span>
+      </div>
+
+      <div class="alert-card active-alert">
+        <div class="alert-dot pulsing"></div>
+        <div class="alert-body">
+          <div class="alert-title">Daily spend: $287 (3.2x your average)</div>
+          <div class="alert-desc">OpenClaw agent "threat-intel" is the primary driver &mdash; $194 in 6 hours. Total across all tools today: $287.40. Your 7-day average is $90/day.</div>
+          <div class="alert-escalation">Escalation 1 of 3 &middot; Next alert in 3h 42m &middot; Then every 2h, then hourly</div>
+          <div class="alert-time">First alert: 2 hours ago</div>
+          <div class="alert-actions">
+            <button class="btn btn-secondary btn-sm">Acknowledge (silence 24h)</button>
+            <button class="btn btn-danger btn-sm">$ agentcap kill threat-intel</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="alert-card escalating">
+        <div class="alert-dot pulsing-fast"></div>
+        <div class="alert-body">
+          <div class="alert-title">Weekly spend pace: $847 (on track for $1,210)</div>
+          <div class="alert-desc">At current rate, this week will cost 40% more than last week ($864). Driven by increased Claude Code usage on Tuesday-Wednesday.</div>
+          <div class="alert-escalation">Escalation 2 of 3 &middot; Alerting every 2 hours</div>
+          <div class="alert-time">First alert: yesterday, 4:15pm</div>
+          <div class="alert-actions">
+            <button class="btn btn-secondary btn-sm">Acknowledge (silence 24h)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Acknowledged -->
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin:24px 0 12px;display:flex;align-items:center;gap:8px;">
+        Acknowledged
+        <span style="background:var(--success-dim);color:var(--success);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">1</span>
+      </div>
+
+      <div class="alert-card acknowledged">
+        <div class="alert-dot static-green"></div>
+        <div class="alert-body">
+          <div class="alert-title" style="color:var(--text-secondary);">Claude Code daily spike: $142 on May 16</div>
+          <div class="alert-desc" style="color:var(--text-muted);">Acknowledged by you 18 hours ago. Silence expires in 6 hours. If spend is still elevated, this alert will re-fire.</div>
+          <div class="alert-time" style="color:var(--text-muted);">Acked: May 16 at 2:30pm &middot; Expires: May 17 at 2:30pm</div>
+        </div>
+      </div>
+
+      <!-- Resolved -->
+      <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin:24px 0 12px;">
+        Resolved
+      </div>
+
+      <div class="alert-card resolved">
+        <div class="alert-dot static-muted"></div>
+        <div class="alert-body">
+          <div class="alert-title" style="color:var(--text-muted);">OpenClaw daily spike: $210 on May 14</div>
+          <div class="alert-desc" style="color:var(--text-muted);">Spend returned below threshold. Auto-resolved.</div>
+          <div class="alert-time" style="color:var(--text-muted);">Resolved: May 15</div>
+        </div>
+      </div>
+
+      <div class="alert-card resolved">
+        <div class="alert-dot static-muted"></div>
+        <div class="alert-body">
+          <div class="alert-title" style="color:var(--text-muted);">Weekly pace exceeded $800 threshold</div>
+          <div class="alert-desc" style="color:var(--text-muted);">Acknowledged, then spend decreased. Auto-resolved after ack expired.</div>
+          <div class="alert-time" style="color:var(--text-muted);">Resolved: May 12</div>
+        </div>
+      </div>
+
+      <!-- Config -->
+      <div class="card" style="margin-top:24px;">
+        <div class="card-header">
+          <div>
+            <div class="card-title">Alert Configuration</div>
+            <div class="card-subtitle">~/.ai-spend/config.yaml</div>
+          </div>
+        </div>
+        <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:20px;font-family:var(--mono);font-size:12px;line-height:1.9;color:var(--text-secondary);">
+          <div><span style="color:var(--accent);">thresholds</span>:</div>
+          <div>&nbsp;&nbsp;<span style="color:var(--text-muted);">daily</span>: <span style="color:var(--warning);">100</span></div>
+          <div>&nbsp;&nbsp;<span style="color:var(--text-muted);">weekly</span>: <span style="color:var(--warning);">500</span></div>
+          <div>&nbsp;&nbsp;<span style="color:var(--text-muted);">alert_on_spike</span>: <span style="color:var(--success);">true</span>&nbsp;&nbsp;<span style="color:var(--text-muted);"># 3x normal rate</span></div>
+          <div style="margin-top:8px;"><span style="color:var(--accent);">escalation</span>:</div>
+          <div>&nbsp;&nbsp;- <span style="color:var(--text-muted);">above</span>: <span style="color:var(--warning);">100</span>&nbsp;&nbsp;<span style="color:var(--text-muted);">frequency</span>: <span style="color:var(--text-primary);">every 4h</span></div>
+          <div>&nbsp;&nbsp;- <span style="color:var(--text-muted);">above</span>: <span style="color:var(--warning);">500</span>&nbsp;&nbsp;<span style="color:var(--text-muted);">frequency</span>: <span style="color:var(--text-primary);">every 2h</span></div>
+          <div>&nbsp;&nbsp;- <span style="color:var(--text-muted);">above</span>: <span style="color:var(--warning);">1000</span>&nbsp;&nbsp;<span style="color:var(--text-muted);">frequency</span>: <span style="color:var(--text-primary);">hourly</span></div>
+          <div style="margin-top:8px;"><span style="color:var(--accent);">acknowledge_ttl</span>: <span style="color:var(--text-primary);">24h</span></div>
+          <div><span style="color:var(--accent);">slack_webhook</span>: <span style="color:var(--text-muted);">$SLACK_WEBHOOK_URL</span></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <script src="nav.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', function() { initNav('alerts'); });</script>
+
+</body>
+</html>
