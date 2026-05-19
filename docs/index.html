@@ -30,7 +30,7 @@
     <img src="tokenclaw-banner.jpg" alt="tokenclaw — claw back your agent spend" style="max-width:600px;width:100%;margin:0 auto 32px;display:block;border-radius:12px;">
     <div class="hero-badge">Open Source</div>
     <h1>Claw back your <span class="highlight">agent spend.</span></h1>
-    <p class="hero-sub">Local proxy. Per-key budgets. Hard stop when the budget's gone.<br>Three commands, two minutes, runs on your machine.</p>
+    <p class="hero-sub">Your agents mean well. They're just out there with your credit card doing their best. tokenclaw is how you pull them back before the bill hits.</p>
     <div class="hero-cta">
       <a href="#install" class="btn btn-primary">npm install -g tokenclaw-dev</a>
       <a href="https://github.com/katrinalaszlo/tokenclaw" class="btn btn-secondary">GitHub</a>
@@ -61,77 +61,76 @@
 
   <!-- Why -->
   <section class="features-section" id="why">
-    <h2 class="section-title">You know the problem.</h2>
+    <h2 class="section-title">your agents are doing great work. they're also doing this:</h2>
     <img src="tokenclaw-meme.jpg" alt="tokenclaw crab meme" style="max-width:550px;width:100%;margin:16px auto 24px;display:block;border-radius:12px;">
-    <p class="section-desc">Agent ran overnight. Bill was $280. OpenAI's "spending limit" was just an email. Anthropic's caps are monthly and workspace-level. Nobody does per-key. Nobody does daily. You're always finding out after.</p>
     <div class="feature-grid">
       <div class="feature-card">
-        <div class="feature-icon" style="background:var(--danger-dim); color:var(--danger);">&#9872;</div>
-        <h3>No kill switch</h3>
-        <p>Dashboards show you numbers. Alerts email you after. Nothing actually stops the request from going through at 3am.</p>
+        <div class="feature-icon" style="background:var(--danger-dim); color:var(--danger);">&#128556;</div>
+        <h3>"I thought it was a billing error"</h3>
+        <p>"Turned out I'd left an agent running overnight that scanned our entire monorepo. Twice." It was trying to help. It helped itself to $280.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:var(--warning-dim); color:var(--warning);">&#8593;</div>
-        <h3>Monthly limits miss everything</h3>
-        <p>Agent loops. Runaway retries. A "quick test" that scans your monorepo twice. All under your monthly cap. All expensive.</p>
+        <div class="feature-icon" style="background:var(--warning-dim); color:var(--warning);">&#128560;</div>
+        <h3>"I blew through $124 in a day"</h3>
+        <p>"I had no idea I was getting charged this high of pricing." The agent was just vibing. Running loops. Being thorough. Very expensive thoroughness.</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon" style="background:var(--accent-dim); color:var(--accent);">&#9906;</div>
-        <h3>Which agent is spending what?</h3>
-        <p>Three agents, one API key. No way to tell who's burning through your budget. Per-key budgets fix that.</p>
+        <div class="feature-icon" style="background:var(--accent-dim); color:var(--accent);">&#129300;</div>
+        <h3>"$4,200 in a weekend. manager found out monday."</h3>
+        <p>Agent entered an infinite loop. Ran for 11 hours. No circuit breaker. No budget. Just a very dedicated agent and a very large bill.</p>
       </div>
     </div>
+    <p class="section-desc" style="margin-top:24px;">They're not malicious. They're just agents doing agent things with no spending limit. Anthropic has monthly workspace caps. OpenAI turned their hard limits into emails. Nobody has per-key daily budgets. That's what tokenclaw is.</p>
   </section>
 
   <!-- What it does -->
   <section class="features-section">
-    <h2 class="section-title">What tokenclaw does</h2>
-    <p class="section-desc">Local proxy between your agents and the API. Counts tokens. Checks budgets. Blocks the request if you're over. That's it.</p>
+    <h2 class="section-title">what tokenclaw actually does</h2>
+    <p class="section-desc">Local proxy between your agents and the API. Every request goes through it. Budget's gone? Request blocked. Your agent gets a 429 and a very clear "you're done for today."</p>
     <div class="feature-grid">
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--danger-dim); color:var(--danger);">&#128721;</div>
-        <h3>Hard caps per key</h3>
-        <p>Daily, weekly, or monthly. Budget gone? 429. Agent stops. Not a warning. Not an email.</p>
+        <h3>hard caps per key</h3>
+        <p>$10/day on the research agent. $100/day on deploy. Budget gone? 429. Blocked. Not a warning. Not an email. Blocked.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--accent-dim); color:var(--accent);">&#9906;</div>
-        <h3>Anthropic + OpenAI</h3>
-        <p>Auto-detects from the request path. Also works with Groq, Together, Fireworks, anything OpenAI-compatible. One proxy.</p>
+        <h3>anthropic + openai, one proxy</h3>
+        <p>Figures out which provider from the request path. Also works with Groq, Together, Fireworks. Anything OpenAI-compatible.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--success-dim); color:var(--success);">&#10003;</div>
-        <h3>See who's spending what</h3>
-        <p><code>tokenclaw keys</code> shows spend vs budget per key. Unregistered keys get tracked too, just not limited.</p>
+        <h3>see who's spending what</h3>
+        <p><code>tokenclaw keys</code> and there it is. Per key, per day. No more guessing which agent ate your budget.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--warning-dim); color:var(--warning);">&#128276;</div>
-        <h3>Slack alerts</h3>
-        <p>80% warning. 100% blocked. Gets louder if you ignore it.</p>
+        <h3>slack alerts that won't shut up</h3>
+        <p>80%: "hey, your research agent is getting expensive." 100%: "blocked it. you're welcome." Ignore it? Gets louder. Hourly until you deal with it.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--accent-dim); color:var(--accent);">&#128274;</div>
-        <h3>Runs on localhost</h3>
-        <p>No cloud. No telemetry. No account. Your requests never touch a third party.</p>
+        <h3>runs on your machine</h3>
+        <p>localhost only. No cloud. No telemetry. No account. Nobody sees your requests except you and the crab.</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon" style="background:var(--success-dim); color:var(--success);">&#36;</div>
-        <h3>Scan your tools</h3>
-        <p><code>tokenclaw</code> scans 9 AI tools on your machine and shows spend. <code>tokenclaw dashboard</code> opens it in a browser.</p>
+        <h3>scan first, panic second</h3>
+        <p><code>tokenclaw</code> scans 9 AI tools on your machine before you even set up the proxy. See what the damage is. <code>tokenclaw dashboard</code> for the full picture.</p>
       </div>
     </div>
   </section>
 
   <!-- How -->
   <section class="how-section" id="how">
-    <h2 class="section-title" style="margin-bottom:32px;">Three steps.</h2>
+    <h2 class="section-title" style="margin-bottom:32px;">three steps. seriously.</h2>
 
-    <!-- Step 1: Scan -->
     <div class="steps">
       <div class="step">
         <div class="step-number">1</div>
         <div class="step-content">
-          <h3>See what you're spending</h3>
-          <p>Run <code>npx tokenclaw-dev</code>. It finds every AI tool on your machine and shows you the numbers.</p>
+          <h3>see the damage</h3>
+          <p>Run <code>npx tokenclaw-dev</code>. It finds every AI tool on your machine and tells you what you've been spending. No keys needed. Just run it and brace yourself.</p>
         </div>
       </div>
     </div>
@@ -142,7 +141,7 @@
           <span class="terminal-dot" style="background:#ff5f57;"></span>
           <span class="terminal-dot" style="background:#febc2e;"></span>
           <span class="terminal-dot" style="background:#28c840;"></span>
-          <span class="terminal-title">terminal</span>
+          <span class="terminal-title">oh no</span>
         </div>
         <div class="terminal-body">
           <div><span class="line-prompt">$ </span><span class="line-cmd">npx tokenclaw-dev</span></div>
@@ -159,20 +158,19 @@
       </div>
     </div>
 
-    <!-- Steps 2 + 3 -->
     <div class="steps">
       <div class="step">
         <div class="step-number">2</div>
         <div class="step-content">
-          <h3>Set budgets</h3>
-          <p><code>tokenclaw set --key sk-ant-proj-research --budget 10/day</code><br>One key per agent. One budget per key. Runaway on one can't touch the other.</p>
+          <h3>set budgets</h3>
+          <p><code>tokenclaw set --key sk-ant-proj-research --budget 10/day</code><br>Research agent gets $10. Deploy agent gets $100. One goes rogue, the other keeps working. The crab is very strict about this.</p>
         </div>
       </div>
       <div class="step">
         <div class="step-number">3</div>
         <div class="step-content">
-          <h3>Start the proxy</h3>
-          <p><code>tokenclaw proxy</code> on localhost:4040. Point your agents at it. Over budget? Blocked.</p>
+          <h3>start the proxy</h3>
+          <p><code>tokenclaw proxy</code> on localhost:4040. Point your agents at it. The crab watches every request. Over budget? Nope. 429. Try again tomorrow.</p>
         </div>
       </div>
     </div>
@@ -183,20 +181,20 @@
     <div class="card" style="border:1px solid var(--border);padding:0;overflow:hidden;">
       <div style="padding:12px 16px;background:var(--bg-hover);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;gap:8px;">
         <span style="font-size:16px;">&#128276;</span>
-        <span style="font-size:13px;font-weight:600;color:var(--text-primary);">Slack</span>
+        <span style="font-size:13px;font-weight:600;color:var(--text-primary);">your slack at 3am</span>
       </div>
       <div style="padding:20px;font-family:var(--mono);font-size:13px;line-height:1.8;">
-        <div style="color:var(--danger);font-weight:600;">[tokenclaw] Key budget exceeded: sk-ant-proj-research</div>
-        <div style="color:var(--text-secondary);">$10.42 spent (limit: <span style="color:var(--warning);">$10.00/day</span>)</div>
-        <div style="color:var(--text-secondary);">Requests blocked until midnight UTC</div>
-        <div style="margin-top:8px;color:var(--text-muted);">The agent tried to keep going. We said no.</div>
+        <div style="color:var(--danger);font-weight:600;">[tokenclaw] sk-ant-proj-research hit its limit</div>
+        <div style="color:var(--text-secondary);">$10.42 spent (budget: <span style="color:var(--warning);">$10.00/day</span>)</div>
+        <div style="color:var(--text-secondary);">requests blocked until midnight UTC</div>
+        <div style="margin-top:8px;color:var(--text-muted);">your agent: "but I was almost done!" &mdash; tokenclaw: "you're done."</div>
       </div>
     </div>
   </section>
 
   <!-- Install -->
   <section style="padding:80px 48px;max-width:800px;margin:0 auto;" id="install">
-    <h2 class="section-title">Install</h2>
+    <h2 class="section-title">install</h2>
 
     <div class="card" style="margin-bottom:16px;">
       <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:14px;display:flex;align-items:center;justify-content:space-between;">
@@ -216,6 +214,8 @@
       </div>
     </div>
 
+    <p style="text-align:center;color:var(--text-muted);font-size:13px;margin-top:16px;">node 18+. that's it. no accounts, no API keys, no signup.</p>
+
     <div style="margin-top:24px;text-align:center;">
       <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;">
         <span style="background:var(--accent-dim);border:1px solid var(--accent);border-radius:var(--radius-sm);padding:4px 12px;font-size:12px;color:var(--accent);">Anthropic</span>
@@ -230,7 +230,8 @@
 
   <!-- CTA -->
   <section class="cta-section">
-    <h2>Missing a provider? <a href="https://github.com/katrinalaszlo/tokenclaw/issues" style="color:var(--accent);text-decoration:underline;">Open an issue</a> or send a PR.</h2>
+    <h2>missing your provider? add it.</h2>
+    <p><a href="https://github.com/katrinalaszlo/tokenclaw/issues" style="color:var(--accent);text-decoration:underline;">open an issue</a> or send a PR. MIT licensed. the more agents we can cut off, the better.</p>
     <div class="hero-cta">
       <a href="https://github.com/katrinalaszlo/tokenclaw" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
       <a href="https://www.npmjs.com/package/tokenclaw-dev" class="btn btn-secondary">npm</a>
