@@ -132,34 +132,35 @@
     </section>
 
     <section class="section">
-      <h2>Three steps.</h2>
       <div class="steps">
 
         <div class="step">
-          <div class="step-label">1. Set rules</div>
-          <div class="step-title">Give each API key a budget and thresholds.</div>
+          <div class="step-label">View</div>
+          <div class="step-title">See what each API key is spending.</div>
           <div class="step-code">
-            <span class="g">$</span> tokenclaw set --key sk-ant-research --budget 10/day \<br>
-            &nbsp;&nbsp;--warn 80% --block 100%
+            <span class="g">$</span> tokenclaw keys<br>
+            <br>
+            <span class="m">sk-ant-research   $7.20 / $10 (72%)</span><br>
+            <span class="m">sk-proj-deploy    $12.50 / $100 (12%)</span>
           </div>
         </div>
 
         <div class="step">
-          <div class="step-label">2. Start the proxy</div>
-          <div class="step-title">One command. Runs on localhost.</div>
+          <div class="step-label">Warn</div>
+          <div class="step-title">Get alerts when spend crosses thresholds you set.</div>
           <div class="step-code">
-            <span class="g">$</span> tokenclaw proxy<br>
-            <span class="m"># point your agent at it</span><br>
-            <span class="g">$</span> ANTHROPIC_BASE_URL=http://localhost:4040 claude
+            <span class="g">$</span> tokenclaw set --key sk-ant-research --budget 10/day --warn 80%<br>
+            <br>
+            <span class="y">WARNING: sk-ant-research at 84% of budget</span>
           </div>
         </div>
 
         <div class="step">
-          <div class="step-label">3. Rules enforced</div>
-          <div class="step-title">Warn at 80%. Block at 100%. Nothing blocked unless you say so.</div>
+          <div class="step-label">Block</div>
+          <div class="step-title">Hard stop when limits are exceeded. Nothing blocked unless you say so.</div>
           <div class="step-code">
-            <span class="y">WARNING: sk-ant-research at 84% of budget</span><br>
-            ...<br>
+            <span class="g">$</span> tokenclaw set --key sk-ant-research --budget 10/day --warn 80% --block 100%<br>
+            <br>
             <span class="r">BLOCKED — $10.42 / $10.00 day</span>
           </div>
         </div>
