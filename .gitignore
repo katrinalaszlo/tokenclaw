@@ -4,3 +4,4 @@ dist/
 .gstack/
 .DS_Store
 *.tgz
+research/
