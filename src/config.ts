@@ -9,12 +9,17 @@ export interface EscalationRule {
 }
 
 export type BudgetPeriod = "day" | "week" | "month";
-export type BudgetMode = "alert" | "enforce";
+export type PolicyAction = "alert" | "block";
+
+export interface PolicyRule {
+  at: number;
+  action: PolicyAction;
+}
 
 export interface KeyBudget {
   budget: number;
   period: BudgetPeriod;
-  mode: BudgetMode;
+  rules: PolicyRule[];
 }
 
 export interface AccConfig {
@@ -51,7 +56,7 @@ export const DEFAULT_CONFIG: AccConfig = {
   key_budgets: {},
 };
 
-export function parseBudgetString(s: string): Omit<KeyBudget, "mode"> {
+export function parseBudgetString(s: string): Omit<KeyBudget, "rules"> {
   const match = s.match(/^(\d+(?:\.\d+)?)\/(day|week|month)$/);
   if (!match) {
     throw new Error(
@@ -95,7 +100,11 @@ export function loadConfig(): AccConfig {
     key_budgets: Object.fromEntries(
       Object.entries(parsed.key_budgets ?? {}).map(([k, v]) => [
         k,
-        { ...v, mode: v.mode ?? "enforce" },
+        {
+          budget: v.budget,
+          period: v.period,
+          rules: v.rules ?? [{ at: 80, action: "alert" as const }],
+        },
       ]),
     ),
   };
