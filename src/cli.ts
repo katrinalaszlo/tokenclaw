@@ -168,6 +168,23 @@ function isFirstRun(): boolean {
   return !existsSync(getConfigPath());
 }
 
+function shortModel(model: string): string {
+  return model
+    .replace("claude-", "")
+    .replace("gpt-", "")
+    .replace(/-\d{4,}$/, "");
+}
+
+function shortProject(name: string): string {
+  if (/^[0-9a-f]{8}-/.test(name)) return "(session)";
+  const parts = name.split("/");
+  const last = parts[parts.length - 1] || name;
+  if (parts.length >= 2) {
+    return parts.slice(-2).join("/");
+  }
+  return last;
+}
+
 function printScanResults(
   found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
   _notFound: string[],
@@ -186,10 +203,26 @@ function printScanResults(
     for (const t of apiTools.sort((a, b) => b.totalCost - a.totalCost)) {
       console.log(
         `  ${chalk.white(t.tool.padEnd(20))} ${chalk.cyan(fmtUSD(t.totalCost).padStart(10))}` +
-          chalk.dim(
-            `  ${t.sessions} sessions  ${fmtTokens(t.inputTokens + t.outputTokens)} tokens`,
-          ),
+          chalk.dim(`  ${t.sessions} sessions`),
       );
+
+      const models = Object.entries(t.modelUsage)
+        .sort(([, a], [, b]) => b.costUSD - a.costUSD)
+        .slice(0, 3);
+      if (models.length > 0) {
+        const modelStr = models
+          .map(([m, u]) => `${shortModel(m)} ${fmtUSD(u.costUSD)}`)
+          .join(chalk.dim(" · "));
+        console.log(chalk.dim("    Models:  ") + modelStr);
+      }
+
+      const topProjects = t.projects.slice(0, 3);
+      if (topProjects.length > 0) {
+        const projStr = topProjects
+          .map((p) => `${shortProject(p.name)} ${fmtUSD(p.cost)}`)
+          .join(chalk.dim(" · "));
+        console.log(chalk.dim("    Top:     ") + projStr);
+      }
     }
     console.log();
   }
@@ -201,6 +234,14 @@ function printScanResults(
         `  ${chalk.white(t.tool.padEnd(20))} ${chalk.green(t.planName + " $" + t.planCost + "/mo")}` +
           chalk.dim(`  ${t.sessions} sessions`),
       );
+
+      const topProjects = t.projects.slice(0, 3);
+      if (topProjects.length > 0) {
+        const projStr = topProjects
+          .map((p) => `${shortProject(p.name)} ${fmtUSD(p.cost)}`)
+          .join(chalk.dim(" · "));
+        console.log(chalk.dim("    Top:     ") + projStr);
+      }
     }
     console.log();
   }
@@ -517,6 +558,228 @@ async function runInit(): Promise<void> {
   await runFirstRun();
 }
 
+async function runList(view: string): Promise<void> {
+  initDB();
+  console.log(chalk.dim("Scanning local AI tools...\n"));
+  const { found } = await scanLocalTools();
+  persistScanToDB(found);
+
+  if (found.length === 0) {
+    console.log(chalk.yellow("No AI tool usage data found."));
+    return;
+  }
+
+  switch (view) {
+    case "models":
+      listModels(found);
+      break;
+    case "projects":
+      listProjects(found);
+      break;
+    case "trends":
+      listTrends(found);
+      break;
+    case "usage":
+      listUsage(found);
+      break;
+    case "efficiency":
+      listEfficiency(found);
+      break;
+    default:
+      console.log(chalk.red(`Unknown view: ${view}`));
+      console.log(
+        chalk.dim("Available: models, projects, trends, usage, efficiency"),
+      );
+  }
+}
+
+function listModels(
+  found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
+): void {
+  console.log(chalk.bold("Cost by model\n"));
+
+  const allModels: Record<
+    string,
+    { cost: number; input: number; output: number; tools: string[] }
+  > = {};
+
+  for (const t of found) {
+    for (const [model, usage] of Object.entries(t.modelUsage)) {
+      if (!allModels[model]) {
+        allModels[model] = { cost: 0, input: 0, output: 0, tools: [] };
+      }
+      allModels[model].cost += usage.costUSD;
+      allModels[model].input += usage.inputTokens;
+      allModels[model].output += usage.outputTokens;
+      if (!allModels[model].tools.includes(t.tool)) {
+        allModels[model].tools.push(t.tool);
+      }
+    }
+  }
+
+  const sorted = Object.entries(allModels).sort(
+    ([, a], [, b]) => b.cost - a.cost,
+  );
+  const maxCost = sorted[0]?.[1].cost || 1;
+
+  for (const [model, data] of sorted) {
+    const barLen = Math.max(1, Math.round((data.cost / maxCost) * 20));
+    const bar =
+      chalk.cyan("█".repeat(barLen)) + chalk.dim("░".repeat(20 - barLen));
+    console.log(
+      `  ${chalk.white(shortModel(model).padEnd(18))} ${chalk.cyan(fmtUSD(data.cost).padStart(10))}  ${bar}  ${chalk.dim(fmtTokens(data.input + data.output) + " tokens")}`,
+    );
+    console.log(chalk.dim(`  ${"".padEnd(18)} ${data.tools.join(", ")}`));
+  }
+}
+
+function listProjects(
+  found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
+): void {
+  console.log(chalk.bold("Cost by project\n"));
+
+  const allProjects: Record<
+    string,
+    { cost: number; sessions: number; tool: string }
+  > = {};
+
+  for (const t of found) {
+    for (const p of t.projects) {
+      const name = shortProject(p.name);
+      if (name === "(session)") continue;
+      const key = `${name}|${t.tool}`;
+      if (!allProjects[key]) {
+        allProjects[key] = { cost: 0, sessions: 0, tool: t.tool };
+      }
+      allProjects[key].cost += p.cost;
+      allProjects[key].sessions += p.sessions;
+    }
+  }
+
+  const sorted = Object.entries(allProjects).sort(
+    ([, a], [, b]) => b.cost - a.cost,
+  );
+  const maxCost = sorted[0]?.[1].cost || 1;
+
+  for (const [key, data] of sorted.slice(0, 15)) {
+    const name = key.split("|")[0]!;
+    const barLen = Math.max(1, Math.round((data.cost / maxCost) * 20));
+    const bar =
+      chalk.cyan("█".repeat(barLen)) + chalk.dim("░".repeat(20 - barLen));
+    console.log(
+      `  ${chalk.white(name.padEnd(25))} ${chalk.cyan(fmtUSD(data.cost).padStart(10))}  ${bar}  ${chalk.dim(data.tool)}`,
+    );
+  }
+}
+
+function listTrends(
+  found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
+): void {
+  console.log(chalk.bold("Daily spend trend\n"));
+
+  const dailyTotals: Record<string, number> = {};
+  for (const t of found) {
+    for (const d of t.dailyCosts) {
+      dailyTotals[d.date] = (dailyTotals[d.date] || 0) + d.cost;
+    }
+  }
+
+  const sorted = Object.entries(dailyTotals).sort(([a], [b]) =>
+    a.localeCompare(b),
+  );
+  const last14 = sorted.slice(-14);
+
+  if (last14.length === 0) {
+    console.log(chalk.dim("  No daily data available."));
+    return;
+  }
+
+  const maxDay = Math.max(...last14.map(([, c]) => c));
+  const total = last14.reduce((s, [, c]) => s + c, 0);
+  const avg = total / last14.length;
+
+  for (const [date, cost] of last14) {
+    const barLen = Math.max(1, Math.round((cost / maxDay) * 30));
+    const bar =
+      cost > avg * 1.5
+        ? chalk.red("█".repeat(barLen))
+        : chalk.cyan("█".repeat(barLen));
+    const label = date.slice(5);
+    console.log(`  ${chalk.dim(label)}  ${bar}  ${fmtUSD(cost)}`);
+  }
+
+  console.log();
+  console.log(
+    chalk.dim(
+      `  avg: ${fmtUSD(avg)}/day  total: ${fmtUSD(total)} over ${last14.length} days`,
+    ),
+  );
+}
+
+function listUsage(
+  found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
+): void {
+  console.log(chalk.bold("Token usage\n"));
+
+  for (const t of found) {
+    const total = t.inputTokens + t.outputTokens;
+    const inputPct = total > 0 ? Math.round((t.inputTokens / total) * 100) : 0;
+    const outputPct = 100 - inputPct;
+
+    console.log(chalk.white(`  ${t.tool}`));
+    console.log(
+      `    Input:    ${chalk.cyan(fmtTokens(t.inputTokens).padStart(8))}  ${chalk.dim(`(${inputPct}%)`)}`,
+    );
+    console.log(
+      `    Output:   ${chalk.cyan(fmtTokens(t.outputTokens).padStart(8))}  ${chalk.dim(`(${outputPct}%)`)}`,
+    );
+    console.log(
+      `    Cache:    ${chalk.green(fmtTokens(t.cacheReadTokens).padStart(8))}  ${chalk.dim("read")}` +
+        `   ${chalk.yellow(fmtTokens(t.cacheCreationTokens).padStart(8))}  ${chalk.dim("write")}`,
+    );
+    console.log(
+      `    Total:    ${chalk.white(fmtTokens(total).padStart(8))}  ${chalk.dim(`across ${t.sessions} sessions`)}`,
+    );
+    console.log();
+  }
+}
+
+function listEfficiency(
+  found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
+): void {
+  console.log(chalk.bold("Efficiency\n"));
+
+  for (const t of found) {
+    const totalTokens = t.inputTokens + t.outputTokens;
+    const costPerSession = t.sessions > 0 ? t.totalCost / t.sessions : 0;
+    const cacheTotal = t.cacheReadTokens + t.cacheCreationTokens;
+    const cacheHitRate =
+      cacheTotal > 0
+        ? Math.round(
+            (t.cacheReadTokens / (t.cacheReadTokens + t.inputTokens)) * 100,
+          )
+        : 0;
+
+    console.log(chalk.white(`  ${t.tool}`));
+    console.log(`    Cost/session:   ${chalk.cyan(fmtUSD(costPerSession))}`);
+    console.log(
+      `    Cost/1K tokens: ${chalk.cyan(fmtUSD(totalTokens > 0 ? (t.totalCost / totalTokens) * 1000 : 0))}`,
+    );
+    console.log(
+      `    Cache hit rate: ${cacheHitRate > 50 ? chalk.green(`${cacheHitRate}%`) : chalk.yellow(`${cacheHitRate}%`)}`,
+    );
+
+    if (t.billingType === "subscription" && t.planCost) {
+      const leverage =
+        t.planCost > 0 ? Math.round(t.totalCost / t.planCost) : 0;
+      console.log(
+        `    Subscription:   ${chalk.green(`${leverage}x`)} value ${chalk.dim(`(paying $${t.planCost}/mo, consuming ${fmtUSD(t.totalCost)} at API rates)`)}`,
+      );
+    }
+    console.log();
+  }
+}
+
 function runConfig(): void {
   const config = loadConfig();
   const configPath = getConfigPath();
@@ -576,6 +839,24 @@ program
   .option("--once", "Run once and exit (no interval)")
   .action(async (opts: { once?: boolean }) => {
     await runWatch(!!opts.once);
+  });
+
+program
+  .command("list [view]")
+  .description("Detailed views: models, projects, trends, usage, efficiency")
+  .action(async (view?: string) => {
+    if (!view) {
+      console.log(chalk.bold("Available views:\n"));
+      console.log("  tokenclaw list models      Cost breakdown by model");
+      console.log("  tokenclaw list projects     Cost breakdown by project");
+      console.log("  tokenclaw list trends       Daily spend over time");
+      console.log("  tokenclaw list usage        Token counts and breakdown");
+      console.log(
+        "  tokenclaw list efficiency   Cache hit rates, cost per session",
+      );
+      return;
+    }
+    await runList(view);
   });
 
 program
