@@ -7,7 +7,7 @@ You left an agent running overnight. You woke up to a $280 bill. Your provider's
 tokenclaw is the hard stop that should have existed from day one.
 
 ```bash
-npm install -g tokenclaw
+npm install -g tokenclaw-dev
 
 # Give each API key a daily budget
 tokenclaw set --key sk-ant-proj-research --budget 10/day
