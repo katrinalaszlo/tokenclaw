@@ -2,7 +2,6 @@
 
 import { Command } from "commander";
 import chalk from "chalk";
-import { createServer } from "node:http";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 
@@ -38,7 +37,6 @@ import {
   getKeyBreakdown,
   getSpendByKeyPrefix,
 } from "./db.js";
-import { generateDashboard, type DashboardData } from "./dashboard/template.js";
 import { startProxy } from "./proxy/server.js";
 import { getBudgetWindowStart } from "./proxy/parse.js";
 
@@ -222,20 +220,7 @@ async function runScan(): Promise<void> {
 
   // Persist to DB
   persistScanToDB(found);
-
-  const rl = createInterface({ input: stdin, output: stdout });
-  const answer = await rl.question(
-    chalk.dim("\nOpen dashboard with full breakdown? ") + chalk.white("(Y/n) "),
-  );
-  rl.close();
-
-  if (
-    !answer ||
-    answer.toLowerCase() === "y" ||
-    answer.toLowerCase() === "yes"
-  ) {
-    await runDashboard();
-  }
+  console.log(chalk.dim("\nSnapshots saved."));
 }
 
 async function runWatch(once: boolean): Promise<void> {
@@ -394,128 +379,6 @@ function runStatus(): void {
   }
 }
 
-async function runDashboard(): Promise<void> {
-  initDB();
-  const config = loadConfig();
-
-  console.log(chalk.dim("Scanning..."));
-  const { found } = await scanLocalTools();
-  persistScanToDB(found);
-
-  const totalSpend = found.reduce(
-    (s, t) =>
-      s +
-      (t.billingType === "subscription" && t.planCost
-        ? t.planCost
-        : t.totalCost),
-    0,
-  );
-  const todaySpend = getTodaySpend();
-  const dailyAverage = getAverageDaily(30);
-
-  // Aggregate tools
-  const tools = found
-    .map((t) => ({
-      name: t.tool,
-      cost: t.totalCost,
-      sessions: t.sessions,
-      tokens: t.inputTokens + t.outputTokens,
-      billingType: t.billingType,
-      planName: t.planName,
-      planCost: t.planCost,
-    }))
-    .sort((a, b) => b.cost - a.cost);
-
-  // Aggregate models across all tools
-  const modelMap = new Map<string, number>();
-  for (const t of found) {
-    for (const [model, usage] of Object.entries(t.modelUsage)) {
-      modelMap.set(model, (modelMap.get(model) ?? 0) + usage.costUSD);
-    }
-  }
-  const models = [...modelMap.entries()]
-    .map(([name, cost]) => ({ name, cost }))
-    .sort((a, b) => b.cost - a.cost);
-
-  // Alert state
-  const snapshots = scanToEngineSnapshots(found);
-  const rules = buildRules(config);
-  const history = dbAlertsToHistory(getRecentAlerts(168));
-  const ackState = getAckState();
-  const actions = evaluateAlerts(snapshots, rules, history, ackState);
-
-  const alerts: DashboardData["alerts"] = actions.map((a) => ({
-    rule: a.ruleName,
-    status: "active" as const,
-    message: `${fmtUSD(a.amount)} spent (threshold: ${fmtUSD(a.threshold)})`,
-    timestamp: new Date().toISOString(),
-    escalationLevel: a.level,
-  }));
-
-  // Add acknowledged alerts
-  for (const [id, ack] of Object.entries(ackState)) {
-    alerts.push({
-      rule: id,
-      status: "acknowledged",
-      message: `Acknowledged until ${new Date(ack.expiresAt).toLocaleString()}`,
-      timestamp: ack.acknowledgedAt,
-      escalationLevel: 0,
-    });
-  }
-
-  // Burn rate
-  const trend: "rising" | "falling" | "stable" =
-    dailyAverage <= 0
-      ? "stable"
-      : todaySpend > dailyAverage * 1.5
-        ? "rising"
-        : todaySpend < dailyAverage * 0.5
-          ? "falling"
-          : "stable";
-
-  // Flatten daily costs across all tools for the time series chart
-  const dailyCosts: { date: string; cost: number; tool: string }[] = [];
-  for (const t of found) {
-    for (const d of t.dailyCosts) {
-      dailyCosts.push({ date: d.date, cost: d.cost, tool: t.tool });
-    }
-  }
-
-  const dashboardData: DashboardData = {
-    totalActualSpend: totalSpend,
-    tools,
-    models,
-    alerts,
-    burnRate: {
-      current: todaySpend,
-      average: dailyAverage,
-      trend,
-    },
-    dailyCosts,
-  };
-
-  const html = generateDashboard(dashboardData);
-  const PORT = 3456;
-
-  const server = createServer((_req, res) => {
-    res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-    res.end(html);
-  });
-
-  server.listen(PORT, async () => {
-    const url = `http://localhost:${PORT}`;
-    console.log(chalk.bold(`Dashboard: ${chalk.cyan(url)}`));
-    console.log(chalk.dim("Ctrl+C to stop.\n"));
-
-    try {
-      const openModule = await import("open");
-      await openModule.default(url);
-    } catch {
-      console.log(chalk.dim("Install 'open' to auto-open browser."));
-    }
-  });
-}
-
 async function runInit(): Promise<void> {
   const rl = createInterface({ input: stdin, output: stdout });
 
@@ -636,13 +499,6 @@ program
   .description("Show current spend and alert status")
   .action(() => {
     runStatus();
-  });
-
-program
-  .command("dashboard")
-  .description("Open spend dashboard in browser")
-  .action(async () => {
-    await runDashboard();
   });
 
 program

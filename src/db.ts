@@ -289,6 +289,14 @@ export function getKeyBreakdown(since: string): KeySpendRow[] {
     .all(since) as KeySpendRow[];
 }
 
+export function hasProxyData(): boolean {
+  const database = getDb();
+  const row = database
+    .prepare(`SELECT COUNT(*) as count FROM proxy_requests`)
+    .get() as { count: number };
+  return row.count > 0;
+}
+
 export function closeDb(): void {
   if (db) {
     db.close();

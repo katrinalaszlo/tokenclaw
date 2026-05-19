@@ -96,7 +96,6 @@ Keys match on longest prefix. Register `sk-ant-proj-research`, any key starting 
 ```bash
 tokenclaw              # Scan 9 AI tools, show spend
 tokenclaw status       # Spend + alert status
-tokenclaw dashboard    # Browser dashboard
 ```
 
 Auto-discovers: Claude Code, OpenClaw, Cursor, Windsurf, Claude Desktop, Cline, Roo Code, Aider, Continue.dev.
