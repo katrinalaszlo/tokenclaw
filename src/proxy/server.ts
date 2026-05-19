@@ -175,19 +175,25 @@ async function handleRequest(
     const windowStart = getBudgetWindowStart(match.budget.period);
     const spent = getSpendByKeyPrefix(match.prefix, windowStart);
     if (spent >= match.budget.budget) {
+      if (match.budget.mode === "enforce") {
+        logFn(
+          `BLOCKED ${match.prefix} — $${spent.toFixed(2)} / $${match.budget.budget.toFixed(2)} ${match.budget.period}`,
+        );
+        res.writeHead(429, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify({
+            error: {
+              type: "budget_exceeded",
+              message: `Key ${match.prefix} exceeded ${match.budget.period === "day" ? "daily" : match.budget.period + "ly"} budget of $${match.budget.budget.toFixed(2)} ($${spent.toFixed(2)} spent). Run \`tokenclaw set --key ${match.prefix} --budget <new-amount>/${match.budget.period}\` to increase.`,
+            },
+          }),
+        );
+        return;
+      }
       logFn(
-        `BLOCKED ${match.prefix} — $${spent.toFixed(2)} / $${match.budget.budget.toFixed(2)} ${match.budget.period}`,
+        `ALERT (passthrough) ${match.prefix} — $${spent.toFixed(2)} / $${match.budget.budget.toFixed(2)} ${match.budget.period}`,
       );
-      res.writeHead(429, { "content-type": "application/json" });
-      res.end(
-        JSON.stringify({
-          error: {
-            type: "budget_exceeded",
-            message: `Key ${match.prefix} exceeded ${match.budget.period === "day" ? "daily" : match.budget.period + "ly"} budget of $${match.budget.budget.toFixed(2)} ($${spent.toFixed(2)} spent). Run \`tokenclaw set --key ${match.prefix} --budget <new-amount>/${match.budget.period}\` to increase.`,
-          },
-        }),
-      );
-      return;
+      await checkBudgetAlert(match.prefix, match.budget, slackWebhook, logFn);
     }
   }
 

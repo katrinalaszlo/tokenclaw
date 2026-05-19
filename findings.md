@@ -1,56 +1,55 @@
 # tokenclaw — Findings
 
-## Per-key governance research (from vault session 2026-05-18)
+## User research: how developers want to cap AI spend (2026-05-19)
 
-### The insight
-"Treating spending authority like a balance on a key rather than a policy in a dashboard." — Lava user, r/AI_Agents
+### Core persona
+Solo devs, indie builders, OpenClaw hackers. Not enterprise FinOps. Running side projects, automations, agent swarms on personal budgets.
 
-Nobody in the 13+ companies building agent spend control does per-key governance. They all do account-level or agent-level caps. Per-key maps to how developers already scope access: one key per agent, one key per project, one key per team.
+### Emotional cycle
+curiosity → excitement → surprise bill → paranoia → optimization obsession
 
-### Competitive landscape (13+ companies, all pre-traction)
-- OpenCard/Sigil (getopencard.com / trysigil.io) — runtime control plane + marketplace
-- Axon402 — orchestrator/runtime agent split with scoped wallets
-- AgentCard — prepaid virtual Visa for agents
-- Privacy.com — agent-specific virtual cards with OpenClaw integration
-- Modexia — USDC wallets with x402 auto-intercept
-- Truzify — payment control layer with rules/approvals/audit
-- Engram — routing/coordination layer that intercepts requests
-- Lava — credit limits at the request layer, blocks when budget gone
-- K2 Rail — hard-coded financial kill-switch API
-- Stripe Link for Agents — one-time cards with push notification approval
-- Mastercard Agent Pay — enterprise agent payment auth
-- LetAgentPay — OSS policy middleware
-- Skymel — workflow-level spend control
+### What they actually ask for (in order of frequency)
+1. **"Is my agent in a loop?"** — #1 fear. Recursive tools, runaway retries, overnight failures. $350 in one day, $2,100 overnight. They want anomaly detection, not monthly totals.
+2. **Per-session visibility** — "this chat cost $0.03" not "your monthly bill is $X". They think in sessions/agents/tasks, not invoices.
+3. **Real-time feedback** — live burn rate during execution, like an FPS counter. Not after-the-fact billing.
+4. **What's wasting tokens?** — One user found 31% from heartbeats, 28% from session bloat, only 41% from actual work.
+5. **Auto-protection** — stop agents at thresholds, downgrade models, pause recursive chains. Prevention > reporting.
 
-### Reddit signal (real pain, not theoretical)
-- r/openclaw: "$280 lost in one weekend, no alert, no kill switch" (2mo ago, 22 comments)
-- Most agents avg $40-80/month unchecked, spikes on weekends/overnight
-- "No native spending cap in OpenClaw"
-- LiteLLM has soft limits but they're bypassable and per-key not per-workflow
-- Everyone asks for "hard cap" — that's the exact word
+### What providers ship vs what users want
+| Provider | Ships | Users want |
+|---|---|---|
+| OpenAI | Email alerts (removed hard caps in 2025) | Hard stop that blocks the API call |
+| Anthropic | Workspace monthly notifications | Per-key daily hard caps |
+| Cursor | Hard stop per user (the only one that blocks) | Exactly this, but for API too |
 
-### IMF three-layer model (April 2026)
-- Intent (probabilistic, agent explores) → Authorization (deterministic, must win) → Settlement (money moves)
-- Authorization must live outside the reasoning loop — model can reason around in-prompt checks
-- Enforcement has to be a structural boundary the agent can't see
+### Budget granularity people mention
+- Monthly total (baseline, everyone assumes this)
+- **Daily** (the overnight horror story crowd — most vocal)
+- Per-session / per-run (coding agent users: "max $15 for this refactor")
+- Per-project / per-workspace (OpenAI used to have this, people miss it)
+- Per-API-key (leaked key damage containment)
 
-### Key question for Phase 1
-Do JSONL session files contain API key identifiers? Determines if per-key tracking works locally or needs billing API.
+### Desired alert pattern (layered)
+- 80% of budget → soft warning (Slack)
+- 100% → hard stop (429, block the request)
+- Optional: graceful degradation (downgrade to cheaper model instead of full stop)
 
-## Dashboard template analysis (2026-05-19)
+### Product implication for tokenclaw
+MVP: budget-based alerts + hard stops. Daily per-key caps via proxy.
+V2: velocity detection ("spend rate jumped 4x in 10 min")
+V3: per-session cost tracking, waste identification
 
-### Sidebar links (template.ts:1305-1337)
-All use href="#" — none functional. Agents, Budgets, Alerts pages don't exist.
+## Competitive landscape (from earlier session 2026-05-18)
 
-### Alert assembly (cli.ts:441-464)
-Alerts come from evaluateAlerts() which checks spend against default thresholds (daily: $100, weekly: $500). Even without user configuring alerts, default thresholds trigger them. This is why "Active Alerts: 2" shows.
+### 13+ companies, all pre-traction
+- OpenCard/Sigil, Axon402, AgentCard, Privacy.com, Modexia, Truzify
+- Engram, Lava, K2 Rail, Stripe Link for Agents, Mastercard Agent Pay
+- LetAgentPay, Skymel
 
-### Cost display issue
-- totalActualSpend in runDashboard() correctly uses planCost for subscription tools
-- But "Today's Spend" uses getTodaySpend() from DB — sums ALL cost_snapshots including token-rate estimates for subscription tools
-- Model breakdown shows token consumption labeled as dollar amounts without "at API rates" qualifier
+### Nobody does per-key daily enforcement locally
+All competitors are SaaS/enterprise. tokenclaw is the only local-first CLI.
 
-### README gaps
-- No uninstall instructions
-- No data cleanup (where ~/.tokenclaw lives, how to reset)
-- No alert removal/clearing docs
+### Reddit signal
+- "hard cap" is the exact word everyone uses
+- "$280 lost in one weekend, no alert, no kill switch"
+- LiteLLM has soft limits but they're bypassable
