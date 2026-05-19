@@ -730,181 +730,310 @@ const program = new Command();
 program
   .name("tokenclaw")
   .description("See, alert, and control AI agent spend")
-  .version("0.5.0")
-  .addHelpText(
-    "after",
-    `
-Observe:
-  scan (default)       Scan local tools, show spend
-  list <view>          models, projects, trends, usage, efficiency
-  status               Current spend + burn rate
-
-Alert:
-  setup                Configure daily budget + Slack webhook
-  watch                Monitor hourly, alert on threshold
-  ack                  Silence alerts for 24h
-
-Control (experimental):
-  proxy                Start per-key enforcement proxy
-  set                  Set per-key budget with warn/block rules
-  keys                 View spend vs budget per key
-`,
-  )
+  .version("0.6.0")
   .option("--no-color", "Disable colored output")
   .option("--config <path>", "Custom config file path")
   .hook("preAction", (_thisCommand, _actionCommand) => {
     const opts = program.opts();
     if (opts.color === false) {
-      // chalk@5: setting level to 0 disables color
       chalk.level = 0;
     }
   });
 
-// Default command: scan
-program
+// ── SPEND (observe layer) ──
+
+const spend = program.command("spend").description("See what you're spending");
+
+spend
   .command("scan", { isDefault: true })
-  .description("Scan local AI tools and show spend summary")
+  .description("Scan local tools, show spend")
   .action(async () => {
     await runScan();
   });
 
-program
-  .command("watch")
-  .description("Continuously monitor spend and fire alerts")
-  .option("--once", "Run once and exit (no interval)")
-  .action(async (opts: { once?: boolean }) => {
-    await runWatch(!!opts.once);
+spend
+  .command("status")
+  .description("Current spend + burn rate")
+  .action(() => {
+    runStatus();
   });
 
-program
+spend
   .command("list [view]")
   .description("Detailed views: models, projects, trends, usage, efficiency")
   .action(async (view?: string) => {
     if (!view) {
       console.log(chalk.bold("Available views:\n"));
-      console.log("  tokenclaw list models      Cost breakdown by model");
-      console.log("  tokenclaw list projects     Cost breakdown by project");
-      console.log("  tokenclaw list trends       Daily spend over time");
-      console.log("  tokenclaw list usage        Token counts and breakdown");
+      console.log("  tokenclaw spend list models      Cost breakdown by model");
       console.log(
-        "  tokenclaw list efficiency   Cache hit rates, cost per session",
+        "  tokenclaw spend list projects     Cost breakdown by project",
+      );
+      console.log("  tokenclaw spend list trends       Daily spend over time");
+      console.log(
+        "  tokenclaw spend list usage        Token counts and breakdown",
+      );
+      console.log(
+        "  tokenclaw spend list efficiency   Cache hit rates, cost per session",
       );
       return;
     }
     await runList(view);
   });
 
+// Root `tokenclaw` with no args → spend scan
 program
-  .command("ack [rule-name]")
-  .description("Acknowledge an alert (silence for TTL)")
-  .action((ruleName?: string) => {
-    runAck(ruleName);
+  .command("scan", { isDefault: true, hidden: true })
+  .description("Scan local AI tools and show spend summary")
+  .action(async () => {
+    await runScan();
   });
 
-program
-  .command("status")
-  .description("Show current spend and alert status")
-  .action(() => {
-    runStatus();
-  });
+// ── ALERT (notification layer) ──
 
-program
+const alert = program
+  .command("alert")
+  .description("Get notified when spend crosses thresholds");
+
+alert
   .command("setup")
-  .description("Configure alerts (daily budget, Slack webhook)")
+  .description("Configure daily budget + Slack webhook")
   .action(async () => {
     await runInit();
   });
 
-program
-  .command("config")
-  .description("Show current configuration")
-  .action(() => {
-    runConfig();
+alert
+  .command("set")
+  .description("Set alert thresholds")
+  .option("--daily <amount>", "Daily spend threshold (USD)")
+  .option("--weekly <amount>", "Weekly spend threshold (USD)")
+  .action((opts: { daily?: string; weekly?: string }) => {
+    const config = loadConfig();
+    if (opts.daily) config.thresholds.daily = Number(opts.daily);
+    if (opts.weekly) config.thresholds.weekly = Number(opts.weekly);
+    if (!opts.daily && !opts.weekly) {
+      console.log(`  Daily:  ${chalk.cyan(fmtUSD(config.thresholds.daily))}`);
+      console.log(`  Weekly: ${chalk.cyan(fmtUSD(config.thresholds.weekly))}`);
+      console.log(
+        chalk.dim(`\nUse --daily <amount> or --weekly <amount> to change.`),
+      );
+      return;
+    }
+    saveConfig(config);
+    console.log(chalk.green("Alert thresholds updated:"));
+    console.log(`  Daily:  ${chalk.cyan(fmtUSD(config.thresholds.daily))}`);
+    console.log(`  Weekly: ${chalk.cyan(fmtUSD(config.thresholds.weekly))}`);
   });
 
-program
+alert
+  .command("watch")
+  .description("Monitor hourly, alert on threshold")
+  .option("--once", "Run once and exit")
+  .action(async (opts: { once?: boolean }) => {
+    await runWatch(!!opts.once);
+  });
+
+alert
+  .command("ack [rule-name]")
+  .description("Silence alerts for 24h")
+  .action((ruleName?: string) => {
+    runAck(ruleName);
+  });
+
+// ── BUDGET (policy layer) ──
+
+const budget = program
+  .command("budget")
+  .description("Set spend limits per key");
+
+budget
   .command("set")
-  .description("Set a per-key budget with rules")
-  .requiredOption("--key <prefix>", "API key prefix to budget")
-  .requiredOption(
-    "--budget <amount>",
-    "Budget in format: 10/day, 500/week, 2000/month",
-  )
-  .option("--warn <pct...>", "Alert at N% of budget (repeatable)")
-  .option("--block <pct>", "Block requests at N% of budget")
-  .action(
-    (opts: {
-      key: string;
-      budget: string;
-      warn?: string[];
-      block?: string;
-    }) => {
-      try {
-        const base = parseBudgetString(opts.budget);
-        const rules: Array<{ at: number; action: "alert" | "block" }> = [];
+  .description("Set a per-key budget")
+  .requiredOption("--key <prefix>", "API key prefix")
+  .requiredOption("--budget <amount>", "Budget: 10/day, 500/week, 2000/month")
+  .action((opts: { key: string; budget: string }) => {
+    try {
+      const base = parseBudgetString(opts.budget);
+      const rules: Array<{ at: number; action: "alert" | "block" }> = [
+        { at: 80, action: "alert" },
+      ];
 
-        if (opts.warn) {
-          for (const w of opts.warn) {
-            rules.push({ at: parseInt(w, 10), action: "alert" });
-          }
-        }
-        if (opts.block) {
-          rules.push({ at: parseInt(opts.block, 10), action: "block" });
-        }
-        if (rules.length === 0) {
-          rules.push({ at: 80, action: "alert" });
-        }
-        rules.sort((a, b) => a.at - b.at);
+      const keyBudget = { ...base, rules };
+      const config = loadConfig();
+      config.key_budgets[opts.key] = keyBudget;
+      saveConfig(config);
 
-        const keyBudget = { ...base, rules };
-        const config = loadConfig();
-        config.key_budgets[opts.key] = keyBudget;
-        saveConfig(config);
+      console.log(
+        chalk.green(`Budget set: ${opts.key} → $${base.budget}/${base.period}`),
+      );
+      console.log(chalk.dim("  warn at 80% (default)"));
+      console.log(
+        chalk.dim(
+          `\nAdd enforcement: tokenclaw control set --key ${opts.key} --block-at 100%`,
+        ),
+      );
+    } catch (err) {
+      console.error(chalk.red(String(err)));
+      process.exit(1);
+    }
+  });
 
-        console.log(
-          chalk.green(`Set: ${opts.key} → $${base.budget}/${base.period}`),
-        );
-        for (const r of rules) {
-          const label =
-            r.action === "block"
-              ? chalk.red(`block at ${r.at}%`)
-              : chalk.yellow(`warn at ${r.at}%`);
-          console.log(`  ${label}`);
-        }
-      } catch (err) {
-        console.error(chalk.red(String(err)));
-        process.exit(1);
+budget
+  .command("list")
+  .description("Show all budgets")
+  .action(() => {
+    const config = loadConfig();
+    const budgets = config.key_budgets;
+
+    if (Object.keys(budgets).length === 0) {
+      console.log(chalk.dim("No budgets configured."));
+      console.log(
+        chalk.dim(
+          "Use: tokenclaw budget set --key <prefix> --budget <amount>/<period>",
+        ),
+      );
+      return;
+    }
+
+    initDB();
+    console.log(chalk.bold("Budgets\n"));
+    for (const [prefix, b] of Object.entries(budgets)) {
+      const since = getBudgetWindowStart(b.period);
+      const spent = getSpendByKeyPrefix(prefix, since);
+      const pct = b.budget > 0 ? Math.round((spent / b.budget) * 100) : 0;
+      const bar =
+        pct >= 100
+          ? chalk.red(`${pct}%`)
+          : pct >= 80
+            ? chalk.yellow(`${pct}%`)
+            : chalk.green(`${pct}%`);
+      console.log(
+        `  ${chalk.white(prefix.padEnd(25))} ${fmtUSD(spent)} / ${fmtUSD(b.budget)} ${b.period}  (${bar})`,
+      );
+    }
+  });
+
+budget
+  .command("show <prefix>")
+  .description("Show details for a key budget")
+  .action((prefix: string) => {
+    initDB();
+    const config = loadConfig();
+    const b = config.key_budgets[prefix];
+    if (!b) {
+      console.log(chalk.red(`No budget found for key: ${prefix}`));
+      return;
+    }
+    const since = getBudgetWindowStart(b.period);
+    const spent = getSpendByKeyPrefix(prefix, since);
+    const pct = b.budget > 0 ? Math.round((spent / b.budget) * 100) : 0;
+
+    console.log(chalk.bold(`${prefix}\n`));
+    console.log(`  Budget:  ${fmtUSD(b.budget)}/${b.period}`);
+    console.log(`  Spent:   ${fmtUSD(spent)} (${pct}%)`);
+    console.log(`  Rules:`);
+    for (const r of b.rules) {
+      const label =
+        r.action === "block"
+          ? chalk.red(`block at ${r.at}%`)
+          : chalk.yellow(`warn at ${r.at}%`);
+      console.log(`    ${label}`);
+    }
+  });
+
+// ── CONTROL (enforcement layer) ──
+
+const control = program
+  .command("control")
+  .description("Enforce spend limits via proxy (experimental)");
+
+control
+  .command("proxy")
+  .description("Start the enforcement proxy")
+  .option("--port <port>", "Port to listen on", "4040")
+  .action((opts: { port: string }) => {
+    const port = parseInt(opts.port, 10);
+    if (isNaN(port) || port < 1 || port > 65535) {
+      console.error(chalk.red("Invalid port number"));
+      process.exit(1);
+    }
+    startProxy(port);
+  });
+
+control
+  .command("set")
+  .description("Set enforcement rules for a key")
+  .requiredOption("--key <prefix>", "API key prefix")
+  .option("--warn-at <pct>", "Alert at N% of budget")
+  .option("--block-at <pct>", "Block requests at N% of budget")
+  .action((opts: { key: string; warnAt?: string; blockAt?: string }) => {
+    const config = loadConfig();
+    const existing = config.key_budgets[opts.key];
+    if (!existing) {
+      console.error(chalk.red(`No budget found for key: ${opts.key}`));
+      console.log(
+        chalk.dim(
+          `Set a budget first: tokenclaw budget set --key ${opts.key} --budget <amount>/<period>`,
+        ),
+      );
+      process.exit(1);
+    }
+
+    const rules: Array<{ at: number; action: "alert" | "block" }> = [];
+    if (opts.warnAt)
+      rules.push({ at: parseInt(opts.warnAt, 10), action: "alert" });
+    if (opts.blockAt)
+      rules.push({ at: parseInt(opts.blockAt, 10), action: "block" });
+    if (rules.length === 0) {
+      console.log("Current rules for " + chalk.white(opts.key) + ":");
+      for (const r of existing.rules) {
+        const label =
+          r.action === "block"
+            ? chalk.red(`block at ${r.at}%`)
+            : chalk.yellow(`warn at ${r.at}%`);
+        console.log(`  ${label}`);
       }
-    },
-  );
+      console.log(
+        chalk.dim("\nUse --warn-at <pct> or --block-at <pct> to change."),
+      );
+      return;
+    }
 
-program
+    rules.sort((a, b) => a.at - b.at);
+    existing.rules = rules;
+    saveConfig(config);
+
+    console.log(chalk.green(`Enforcement rules updated for ${opts.key}:`));
+    for (const r of rules) {
+      const label =
+        r.action === "block"
+          ? chalk.red(`  block at ${r.at}%`)
+          : chalk.yellow(`  warn at ${r.at}%`);
+      console.log(label);
+    }
+  });
+
+control
   .command("keys")
-  .description("Show registered keys with spend vs budget")
+  .description("Show keys with enforcement status")
   .action(() => {
     initDB();
     const config = loadConfig();
     const budgets = config.key_budgets;
 
     if (Object.keys(budgets).length === 0) {
-      console.log(
-        chalk.dim(
-          "No key budgets configured. Use: tokenclaw set --key <prefix> --budget <amount>/<period>",
-        ),
-      );
+      console.log(chalk.dim("No keys configured."));
       return;
     }
 
     const todayStart = getBudgetWindowStart("day");
 
-    console.log(chalk.bold.underline("Key Budgets"));
-    for (const [prefix, budget] of Object.entries(budgets)) {
-      const since = getBudgetWindowStart(budget.period);
+    console.log(chalk.bold("Enforcement Status\n"));
+    for (const [prefix, b] of Object.entries(budgets)) {
+      const since = getBudgetWindowStart(b.period);
       const spent = getSpendByKeyPrefix(prefix, since);
-      const pct =
-        budget.budget > 0 ? Math.round((spent / budget.budget) * 100) : 0;
-      const hasBlock = budget.rules.some((r) => r.action === "block");
-      const bar =
+      const pct = b.budget > 0 ? Math.round((spent / b.budget) * 100) : 0;
+      const hasBlock = b.rules.some((r) => r.action === "block");
+      const status =
         pct >= 100 && hasBlock
           ? chalk.red("BLOCKED")
           : pct >= 100
@@ -914,9 +1043,9 @@ program
               : chalk.green(`${pct}%`);
 
       console.log(
-        `  ${chalk.white(prefix.padEnd(30))} ${fmtUSD(spent)} / ${fmtUSD(budget.budget)} ${budget.period}   (${bar})`,
+        `  ${chalk.white(prefix.padEnd(25))} ${fmtUSD(spent)} / ${fmtUSD(b.budget)} ${b.period}  (${status})`,
       );
-      for (const r of budget.rules) {
+      for (const r of b.rules) {
         const label =
           r.action === "block"
             ? chalk.red(`  block at ${r.at}%`)
@@ -925,7 +1054,6 @@ program
       }
     }
 
-    // Show unregistered key spend
     const breakdown = getKeyBreakdown(todayStart);
     const registeredPrefixes = Object.keys(budgets);
     const unregistered = breakdown.filter(
@@ -938,24 +1066,40 @@ program
     if (unregistered.length > 0) {
       const unregTotal = unregistered.reduce((s, r) => s + r.total_cost, 0);
       console.log(
-        chalk.dim(`  (unregistered keys)`.padEnd(32)) +
-          chalk.dim(`${fmtUSD(unregTotal)} today`) +
-          chalk.dim("           (no limit)"),
+        chalk.dim(
+          `\n  (unregistered keys)  ${fmtUSD(unregTotal)} today  no limit`,
+        ),
       );
     }
   });
 
-program
-  .command("proxy")
-  .description("Start the local proxy server")
-  .option("--port <port>", "Port to listen on", "4040")
-  .action((opts: { port: string }) => {
-    const port = parseInt(opts.port, 10);
-    if (isNaN(port) || port < 1 || port > 65535) {
-      console.error(chalk.red("Invalid port number"));
-      process.exit(1);
-    }
-    startProxy(port);
+// ── CONFIG ──
+
+const configCmd = program.command("config").description("System configuration");
+
+configCmd
+  .command("show", { isDefault: true })
+  .description("Show current configuration")
+  .action(() => {
+    runConfig();
+  });
+
+configCmd
+  .command("reset")
+  .description("Reset to default configuration")
+  .action(() => {
+    saveConfig({ ...DEFAULT_CONFIG });
+    console.log(chalk.green("Config reset to defaults."));
+  });
+
+configCmd
+  .command("slack <webhook>")
+  .description("Set Slack webhook URL")
+  .action((webhook: string) => {
+    const config = loadConfig();
+    config.alerts.slack_webhook = webhook;
+    saveConfig(config);
+    console.log(chalk.green("Slack webhook saved."));
   });
 
 program.parse();
