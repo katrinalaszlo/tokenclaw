@@ -1,5 +1,9 @@
 # tokenclaw
 
+<p align="center">
+  <img src="docs/tokenclaw-logo.jpg" alt="tokenclaw — claw back your agent spend" width="600">
+</p>
+
 View, alert, and control AI agent spend in real time.
 
 AI agents do not stop when something goes wrong. They keep running, retrying, and silently burning through API budgets.
@@ -9,6 +13,10 @@ AI agents do not stop when something goes wrong. They keep running, retrying, an
 > "Agent entered an infinite loop. $4,200 in a weekend."
 >
 > "I set a spending limit. Turns out it was just an email."
+
+<p align="center">
+  <img src="docs/tokenclaw-overnight.jpg" alt="11pm: sleeping while agent runs. 6am: $2,847 bill. should've used tokenclaw." width="400">
+</p>
 
 tokenclaw gives you visibility and control over that spend before it becomes a surprise bill.
 
@@ -87,6 +95,10 @@ When usage crosses your rules:
 ```
 
 ## How it works
+
+<p align="center">
+  <img src="docs/tokenclaw-proxy.jpg" alt="tokenclaw crab directing traffic between Anthropic and OpenAI" width="600">
+</p>
 
 Your agent sends a request. tokenclaw identifies the API key, checks spend against your rules, and either forwards or blocks.
 
