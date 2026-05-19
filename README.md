@@ -20,6 +20,10 @@ AI agents do not stop when something goes wrong. They keep running, retrying, an
 
 tokenclaw gives you visibility and control over that spend before it becomes a surprise bill.
 
+<p align="center">
+  <img src="docs/tokenclaw-meme.jpg" alt="tokenclaw crab getting yanked off stage — wait I can explain" width="500">
+</p>
+
 ## What it does
 
 tokenclaw sits between your agents and model providers and gives you three things:
@@ -29,6 +33,10 @@ tokenclaw sits between your agents and model providers and gives you three thing
 - **Block** requests when limits are exceeded
 
 ## Install
+
+<p align="center">
+  <img src="docs/tokenclaw-crab.jpg" alt="tokenclaw crab holding API coin" width="120">
+</p>
 
 ```bash
 npm install -g tokenclaw-dev
