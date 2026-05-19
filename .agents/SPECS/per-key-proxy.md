@@ -15,7 +15,7 @@ Local reverse proxy that sits between AI agents and LLM providers. Tracks spend 
 ```
 Agent (Claude Code / OpenClaw)
   ↓ ANTHROPIC_BASE_URL=http://localhost:4040
-Local Proxy (agentcap proxy)
+Local Proxy (tokenclaw proxy)
   ↓ checks key budget → BLOCK if over
   ↓ forwards to api.anthropic.com
   ↓ reads response → counts output tokens → updates spend
@@ -26,17 +26,17 @@ Agent gets response (or 429 if blocked)
 
 ```bash
 # Set a per-key budget
-agentcap set --key sk-ant-proj-research --budget 10/day
-agentcap set --key sk-ant-proj-deploy --budget 100/day
+tokenclaw set --key sk-ant-proj-research --budget 10/day
+tokenclaw set --key sk-ant-proj-deploy --budget 100/day
 
 # Start the proxy
-agentcap proxy
+tokenclaw proxy
 # → Listening on http://localhost:4040
 # → Forwarding to https://api.anthropic.com
 # → 2 key budgets active
 
 # Check status
-agentcap keys
+tokenclaw keys
 # sk-ant-proj-research   $7.20 / $10.00 day   (72%)
 # sk-ant-proj-deploy     $12.50 / $100.00 day  (13%)
 # (unregistered keys)    $3.10 today           (no limit)
@@ -59,7 +59,7 @@ Daily budgets reset at midnight local time. Weekly at Monday midnight. Monthly o
 ### When budget is exceeded
 Proxy returns HTTP 429 with body:
 ```json
-{"error": {"type": "budget_exceeded", "message": "Key sk-ant-proj-research exceeded daily budget of $10.00 ($10.42 spent). Run `agentcap ack research` to add $10 or `agentcap set --key sk-ant-proj-research --budget 20/day` to increase."}}
+{"error": {"type": "budget_exceeded", "message": "Key sk-ant-proj-research exceeded daily budget of $10.00 ($10.42 spent). Run `tokenclaw ack research` to add $10 or `tokenclaw set --key sk-ant-proj-research --budget 20/day` to increase."}}
 ```
 Agent sees a clear error. User gets a Slack alert (if configured). Budget doesn't silently reset.
 
@@ -113,13 +113,13 @@ key_budgets:
 
 ## Acceptance criteria
 
-- [ ] `agentcap proxy` starts HTTP server on localhost:4040
+- [ ] `tokenclaw proxy` starts HTTP server on localhost:4040
 - [ ] Forwards valid Anthropic API requests to api.anthropic.com
 - [ ] Streaming responses pass through without buffering
 - [ ] Tracks input/output tokens per request per key
 - [ ] Calculates cost using existing model pricing
-- [ ] `agentcap set --key X --budget Y/period` persists to config
-- [ ] `agentcap keys` shows spend vs budget per registered key
+- [ ] `tokenclaw set --key X --budget Y/period` persists to config
+- [ ] `tokenclaw keys` shows spend vs budget per registered key
 - [ ] Returns 429 when key budget exceeded
 - [ ] Unregistered keys pass through with tracking, no limit
 - [ ] Budget resets at correct period boundary (UTC)

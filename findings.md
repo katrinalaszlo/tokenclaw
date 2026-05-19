@@ -1,4 +1,4 @@
-# agentcap — Findings
+# tokenclaw — Findings
 
 ## Per-key governance research (from vault session 2026-05-18)
 

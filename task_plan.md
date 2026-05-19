@@ -1,10 +1,10 @@
-# agentcap — Task Plan
+# tokenclaw — Task Plan
 
 ## Goal
 Per-API-key budget limits via local reverse proxy. Agent sets `ANTHROPIC_BASE_URL=localhost:4040`, proxy sees every request including API key, tracks spend, enforces hard caps. The differentiator: spending authority lives on the key, not in a dashboard.
 
 ## Key Decisions
-- **Name: agentcap.** Published to npm as agentcap@0.1.0.
+- **Name: tokenclaw.** Published to npm as tokenclaw@0.1.0.
 - **Proxy approach chosen.** JSONL files don't contain API keys (verified 2026-05-18). Proxy is the only path to per-key enforcement.
 - **UTC for all budget windows.** Midnight UTC for day, Monday UTC for week, 1st UTC for month.
 - **Longest-prefix-wins** for key matching when multiple prefixes overlap.
@@ -50,11 +50,11 @@ Per-API-key budget limits via local reverse proxy. Agent sets `ANTHROPIC_BASE_UR
 - Verify: npm run build + curl test
 
 ### Phase 4: CLI commands `status: complete`
-- agentcap set --key <prefix> --budget <amount>/<period>
-- agentcap keys — show registered keys with spend vs budget
-- agentcap proxy — start proxy server (foreground)
-- agentcap proxy --port <port>
-- Update agentcap status to include key breakdown
+- tokenclaw set --key <prefix> --budget <amount>/<period>
+- tokenclaw keys — show registered keys with spend vs budget
+- tokenclaw proxy — start proxy server (foreground)
+- tokenclaw proxy --port <port>
+- Update tokenclaw status to include key breakdown
 - Verify: npm run build + CLI test
 
 ### Phase 5: Alert integration `status: complete`
@@ -67,11 +67,11 @@ Per-API-key budget limits via local reverse proxy. Agent sets `ANTHROPIC_BASE_UR
 - [ ] E2E test with real Anthropic key (streaming path — needs Kat's key)
 - [ ] Update landing page
 - [ ] Update README
-- [ ] npm publish agentcap@0.2.0
+- [ ] npm publish tokenclaw@0.2.0
 
 ## Errors Encountered
 | Error | Attempt | Resolution |
 |-------|---------|------------|
-| npm blocked agent-spend (too similar to agentspend) | 1 | Published as agentcap instead |
+| npm blocked agent-spend (too similar to tokenclaw) | 1 | Published as tokenclaw instead |
 | npm required OTP for publish | 1 | Used recovery code |
 | JSONL files have no API key data | 1 | Pivot to local proxy approach |
