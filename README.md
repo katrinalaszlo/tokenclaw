@@ -42,7 +42,40 @@ tokenclaw sits between your agents and model providers and gives you three thing
 npm install -g tokenclaw-dev
 ```
 
-## 1. Start the proxy
+## Quick start: alerts only
+
+No proxy needed. First run walks you through setup:
+
+```bash
+tokenclaw
+```
+
+```
+Scanning local AI tools...
+
+What you paid: $249/mo
+What you consumed: $187.40 at API rates
+
+Tools found:
+  Claude Code            Pro $100/mo  34 sessions  consumed ~$142.50 at API rates
+  Cursor                 Pro $20/mo   12 sessions  consumed ~$44.90 at API rates
+
+Welcome to tokenclaw! No config found — let's set one up.
+
+Daily spend threshold (USD) [100]: 50
+Slack webhook URL (optional):
+
+Config saved to ~/.tokenclaw/config.yaml
+
+Run `tokenclaw watch` to start monitoring.
+Run `tokenclaw proxy` when you're ready for per-key budgets + hard blocking.
+```
+
+Detects: Claude Code, OpenClaw, Cursor, Windsurf, Claude Desktop, Cline, Roo Code, Aider, Continue.dev.
+
+## Full control: per-key budgets + blocking
+
+Start the proxy to track spend per API key and enforce hard limits:
 
 ```bash
 tokenclaw proxy
@@ -55,23 +88,13 @@ ANTHROPIC_BASE_URL=http://localhost:4040 claude
 OPENAI_BASE_URL=http://localhost:4040 your-agent
 ```
 
-## 2. Set alerts and limits
-
-Define rules per API key:
+Set per-key rules:
 
 ```bash
 tokenclaw set --key sk-ant-research --budget 10/day --warn 80% --block 100%
 ```
 
-Just want alerts? No blocking:
-
-```bash
-tokenclaw set --key sk-ant-research --budget 10/day --warn 50% --warn 80%
-```
-
-Nothing is blocked unless you explicitly add `--block`.
-
-## 3. View your spend
+View spend:
 
 ```bash
 tokenclaw keys
@@ -88,10 +111,8 @@ sk-proj-deploy    $12.50 / $100 (12%)
 
 ## What happens when limits are hit
 
-When usage crosses your rules:
-
 - **warn** → Slack alert, request passes through
-- **block** → 429 returned, request stopped
+- **block** → 429 returned, request stopped (proxy only)
 
 ```json
 {
@@ -122,27 +143,16 @@ One proxy. Runs on localhost.
 | Flag | What it does |
 |---|---|
 | `--warn N%` | Send Slack alert at N% of budget |
-| `--block N%` | Block requests at N% of budget |
+| `--block N%` | Block requests at N% of budget (proxy only) |
 | (no flags) | Default: warn at 80% |
 
 Periods: `day` (midnight UTC), `week` (Monday UTC), `month` (1st UTC).
 
 Keys match on longest prefix. Unregistered keys pass through with no limit.
 
-## Scan your tools
-
-Even without the proxy:
-
-```bash
-tokenclaw          # scan local AI tools, show spend
-tokenclaw status   # current spend + alert status
-```
-
-Detects: Claude Code, OpenClaw, Cursor, Windsurf, Claude Desktop, Cline, Roo Code, Aider, Continue.dev.
-
 ## Safety
 
-Nothing is blocked unless you configure a `--block` rule. Default is warn-only. The proxy is non-invasive until you tell it otherwise.
+Nothing is blocked unless you configure a `--block` rule and run the proxy. Default is warn-only.
 
 ## Config
 

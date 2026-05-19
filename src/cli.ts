@@ -5,6 +5,7 @@ import chalk from "chalk";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 
+import { existsSync } from "node:fs";
 import { scanLocalTools } from "./scanners/local.js";
 import {
   evaluateAlerts,
@@ -159,11 +160,14 @@ function persistScanToDB(
 
 // ── Command implementations ──
 
-async function runScan(): Promise<void> {
-  initDB();
-  console.log(chalk.dim("Scanning local AI tools...\n"));
-  const { found, notFound } = await scanLocalTools();
+function isFirstRun(): boolean {
+  return !existsSync(getConfigPath());
+}
 
+function printScanResults(
+  found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
+  notFound: string[],
+): void {
   if (found.length === 0) {
     console.log(chalk.yellow("No AI tool usage data found."));
     if (notFound.length > 0) {
@@ -172,7 +176,6 @@ async function runScan(): Promise<void> {
     return;
   }
 
-  // Compute actual spend (subscription cost for sub tools, token estimate for API tools)
   let totalActual = 0;
   let totalConsumed = 0;
   for (const t of found) {
@@ -180,7 +183,6 @@ async function runScan(): Promise<void> {
     totalActual +=
       t.billingType === "subscription" && t.planCost ? t.planCost : t.totalCost;
   }
-  const totalSessions = found.reduce((s, t) => s + t.sessions, 0);
 
   console.log(
     chalk.bold("What you paid: ") + chalk.cyan(fmtUSD(totalActual) + "/mo"),
@@ -189,7 +191,6 @@ async function runScan(): Promise<void> {
     chalk.dim(`What you consumed: ${fmtUSD(totalConsumed)} at API rates\n`),
   );
 
-  // Per-tool breakdown
   console.log(chalk.bold.underline("Tools found:"));
   for (const t of found.sort((a, b) => b.totalCost - a.totalCost)) {
     if (t.billingType === "subscription") {
@@ -217,8 +218,152 @@ async function runScan(): Promise<void> {
   if (notFound.length > 0) {
     console.log(chalk.dim(`\nNot found: ${notFound.join(", ")}`));
   }
+}
 
-  // Persist to DB
+async function runFirstRun(): Promise<void> {
+  initDB();
+
+  console.log(chalk.bold("\nWelcome to tokenclaw!\n"));
+  console.log(chalk.dim("Scanning local AI tools...\n"));
+  const { found, notFound } = await scanLocalTools();
+
+  printScanResults(found, notFound);
+  persistScanToDB(found);
+
+  const rl = createInterface({ input: stdin, output: stdout });
+
+  console.log(chalk.bold("\n\nWhat would you like to set up?\n"));
+  console.log(
+    `  ${chalk.white("1)")} Alerts only — get notified when spend crosses a threshold`,
+  );
+  console.log(
+    `  ${chalk.white("2)")} Alerts + hard cap — block requests when a per-key budget is exceeded`,
+  );
+  console.log(chalk.dim("     (option 2 requires running a local proxy)\n"));
+
+  const choice = await rl.question("Choose [1/2]: ");
+
+  if (choice.trim() === "2") {
+    await setupProxy(rl);
+  } else {
+    await setupAlerts(rl);
+  }
+
+  rl.close();
+}
+
+async function setupAlerts(
+  rl: ReturnType<typeof createInterface>,
+): Promise<void> {
+  console.log(chalk.bold("\n— Alert setup —\n"));
+
+  const dailyStr = await rl.question(
+    `Daily spend threshold (USD) [${DEFAULT_CONFIG.thresholds.daily}]: `,
+  );
+  const daily = dailyStr ? Number(dailyStr) : DEFAULT_CONFIG.thresholds.daily;
+
+  const slackWebhook = await rl.question("Slack webhook URL (optional): ");
+
+  const config: AccConfig = {
+    ...DEFAULT_CONFIG,
+    thresholds: {
+      ...DEFAULT_CONFIG.thresholds,
+      daily,
+      weekly: daily * 5,
+    },
+    alerts: {
+      ...DEFAULT_CONFIG.alerts,
+      slack_webhook: slackWebhook || "",
+    },
+  };
+
+  saveConfig(config);
+
+  console.log(chalk.green(`\nConfig saved to ${getConfigPath()}`));
+  console.log(
+    `\nNext: run ${chalk.cyan("tokenclaw watch")} to start monitoring.`,
+  );
+  console.log(
+    chalk.dim("You can upgrade to per-key budgets + blocking later with ") +
+      chalk.white("tokenclaw proxy") +
+      chalk.dim("."),
+  );
+}
+
+async function setupProxy(
+  rl: ReturnType<typeof createInterface>,
+): Promise<void> {
+  console.log(chalk.bold("\n— Proxy + per-key budget setup —\n"));
+
+  const keyPrefix = await rl.question(
+    "API key prefix to budget (e.g. sk-ant-research): ",
+  );
+  if (!keyPrefix.trim()) {
+    console.log(
+      chalk.yellow(
+        "No key entered. You can add one later with: tokenclaw set --key <prefix> --budget <amount>/<period>",
+      ),
+    );
+    saveConfig({ ...DEFAULT_CONFIG });
+    return;
+  }
+
+  const budgetStr = await rl.question("Budget (e.g. 10/day, 500/week): ");
+  let base: ReturnType<typeof parseBudgetString>;
+  try {
+    base = parseBudgetString(budgetStr || "100/day");
+  } catch (err) {
+    console.error(chalk.red(String(err)));
+    saveConfig({ ...DEFAULT_CONFIG });
+    return;
+  }
+
+  const warnStr = await rl.question("Warn at what % of budget? [80]: ");
+  const warnAt = warnStr ? parseInt(warnStr, 10) : 80;
+
+  const blockStr = await rl.question(
+    "Block at what % of budget? (leave blank to skip): ",
+  );
+  const rules: Array<{ at: number; action: "alert" | "block" }> = [
+    { at: warnAt, action: "alert" },
+  ];
+  if (blockStr.trim()) {
+    rules.push({ at: parseInt(blockStr, 10), action: "block" });
+  }
+  rules.sort((a, b) => a.at - b.at);
+
+  const slackWebhook = await rl.question("Slack webhook URL (optional): ");
+
+  const config: AccConfig = {
+    ...DEFAULT_CONFIG,
+    alerts: {
+      ...DEFAULT_CONFIG.alerts,
+      slack_webhook: slackWebhook || "",
+    },
+    key_budgets: {
+      [keyPrefix.trim()]: { ...base, rules },
+    },
+  };
+
+  saveConfig(config);
+
+  console.log(chalk.green(`\nConfig saved to ${getConfigPath()}`));
+  console.log(`\nNext: start the proxy and point your agent at it:\n`);
+  console.log(chalk.cyan("  tokenclaw proxy"));
+  console.log(chalk.cyan("  ANTHROPIC_BASE_URL=http://localhost:4040 claude"));
+}
+
+async function runScan(): Promise<void> {
+  if (isFirstRun()) {
+    await runFirstRun();
+    return;
+  }
+
+  initDB();
+  console.log(chalk.dim("Scanning local AI tools...\n"));
+  const { found, notFound } = await scanLocalTools();
+
+  printScanResults(found, notFound);
   persistScanToDB(found);
   console.log(chalk.dim("\nSnapshots saved."));
 }
@@ -380,50 +525,7 @@ function runStatus(): void {
 }
 
 async function runInit(): Promise<void> {
-  const rl = createInterface({ input: stdin, output: stdout });
-
-  console.log(chalk.bold("Agent Cost Control — Setup\n"));
-
-  const dailyStr = await rl.question(
-    `Daily spend threshold (USD) [${DEFAULT_CONFIG.thresholds.daily}]: `,
-  );
-  const daily = dailyStr ? Number(dailyStr) : DEFAULT_CONFIG.thresholds.daily;
-
-  const weeklyStr = await rl.question(
-    `Weekly spend threshold (USD) [${DEFAULT_CONFIG.thresholds.weekly}]: `,
-  );
-  const weekly = weeklyStr
-    ? Number(weeklyStr)
-    : DEFAULT_CONFIG.thresholds.weekly;
-
-  const slackWebhook = await rl.question("Slack webhook URL (optional): ");
-
-  const config: AccConfig = {
-    ...DEFAULT_CONFIG,
-    thresholds: {
-      ...DEFAULT_CONFIG.thresholds,
-      daily,
-      weekly,
-    },
-    alerts: {
-      ...DEFAULT_CONFIG.alerts,
-      slack_webhook: slackWebhook || "",
-    },
-  };
-
-  saveConfig(config);
-  console.log(chalk.green(`\nConfig saved to ${getConfigPath()}`));
-
-  const cronAnswer = await rl.question("Set up hourly cron job? (y/N): ");
-  if (cronAnswer.toLowerCase() === "y") {
-    console.log(chalk.dim("\nAdd this line to your crontab (crontab -e):"));
-    console.log(
-      chalk.cyan("0 * * * * acc watch --once 2>&1 >> ~/.acc/watch.log"),
-    );
-  }
-
-  rl.close();
-  console.log(chalk.dim("\nDone. Run 'acc scan' to see your first report."));
+  await runFirstRun();
 }
 
 function runConfig(): void {
