@@ -6,7 +6,7 @@ import { homedir } from "node:os";
 let db: Database.Database | null = null;
 
 function getAccDir(): string {
-  return join(homedir(), ".acc");
+  return join(homedir(), ".tokenclaw");
 }
 
 function getDbPath(): string {
@@ -44,6 +44,18 @@ export function initDB(): Database.Database {
       escalation_level INTEGER NOT NULL DEFAULT 0,
       details_json TEXT,
       created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS proxy_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      api_key_prefix TEXT NOT NULL,
+      model TEXT NOT NULL,
+      input_tokens INTEGER NOT NULL,
+      output_tokens INTEGER NOT NULL,
+      cache_read_tokens INTEGER DEFAULT 0,
+      cache_creation_tokens INTEGER DEFAULT 0,
+      cost_usd REAL NOT NULL,
+      timestamp TEXT NOT NULL
     );
   `);
 
@@ -199,6 +211,82 @@ export function getRecentAlerts(hours: number = 24): AlertEventRow[] {
        ORDER BY created_at DESC`,
     )
     .all(hours) as AlertEventRow[];
+}
+
+// ── Proxy request tracking ──
+
+export interface ProxyRequestRow {
+  id: number;
+  api_key_prefix: string;
+  model: string;
+  input_tokens: number;
+  output_tokens: number;
+  cache_read_tokens: number;
+  cache_creation_tokens: number;
+  cost_usd: number;
+  timestamp: string;
+}
+
+export function insertProxyRequest(
+  apiKeyPrefix: string,
+  model: string,
+  inputTokens: number,
+  outputTokens: number,
+  cacheReadTokens: number,
+  cacheCreationTokens: number,
+  costUsd: number,
+): void {
+  const database = getDb();
+  database
+    .prepare(
+      `INSERT INTO proxy_requests (api_key_prefix, model, input_tokens, output_tokens, cache_read_tokens, cache_creation_tokens, cost_usd, timestamp)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .run(
+      apiKeyPrefix,
+      model,
+      inputTokens,
+      outputTokens,
+      cacheReadTokens,
+      cacheCreationTokens,
+      costUsd,
+      new Date().toISOString(),
+    );
+}
+
+export function getSpendByKeyPrefix(prefix: string, since: string): number {
+  const database = getDb();
+  const row = database
+    .prepare(
+      `SELECT COALESCE(SUM(cost_usd), 0) as total
+       FROM proxy_requests
+       WHERE api_key_prefix = ? AND timestamp >= ?`,
+    )
+    .get(prefix, since) as { total: number };
+  return row.total;
+}
+
+export interface KeySpendRow {
+  api_key_prefix: string;
+  total_cost: number;
+  request_count: number;
+  last_request: string;
+}
+
+export function getKeyBreakdown(since: string): KeySpendRow[] {
+  const database = getDb();
+  return database
+    .prepare(
+      `SELECT api_key_prefix,
+              SUM(cost_usd) as total_cost,
+              COUNT(*) as request_count,
+              MAX(timestamp) as last_request
+       FROM proxy_requests
+       WHERE timestamp >= ?
+       GROUP BY api_key_prefix
+       ORDER BY total_cost DESC`,
+    )
+    .all(since) as KeySpendRow[];
 }
 
 export function closeDb(): void {

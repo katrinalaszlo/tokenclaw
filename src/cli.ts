@@ -23,6 +23,7 @@ import {
   loadConfig,
   saveConfig,
   getConfigPath,
+  parseBudgetString,
   DEFAULT_CONFIG,
   type AccConfig,
 } from "./config.js";
@@ -34,8 +35,12 @@ import {
   insertAlertEvent,
   getRecentAlerts,
   getCostSnapshots,
+  getKeyBreakdown,
+  getSpendByKeyPrefix,
 } from "./db.js";
 import { generateDashboard, type DashboardData } from "./dashboard/template.js";
+import { startProxy } from "./proxy/server.js";
+import { getBudgetWindowStart } from "./proxy/parse.js";
 
 // ── Helpers ──
 
@@ -577,9 +582,9 @@ function runConfig(): void {
 const program = new Command();
 
 program
-  .name("acc")
-  .description("Agent Cost Control — monitor and alert on AI tool spend")
-  .version("0.1.0")
+  .name("tokenclaw")
+  .description("Claw back your agent spend — per-key budget caps + local proxy")
+  .version("0.2.0")
   .option("--no-color", "Disable colored output")
   .option("--config <path>", "Custom config file path")
   .hook("preAction", (_thisCommand, _actionCommand) => {
@@ -639,6 +644,101 @@ program
   .description("Show current configuration")
   .action(() => {
     runConfig();
+  });
+
+program
+  .command("set")
+  .description("Set a per-key budget")
+  .requiredOption("--key <prefix>", "API key prefix to budget")
+  .requiredOption(
+    "--budget <amount>",
+    "Budget in format: 10/day, 500/week, 2000/month",
+  )
+  .action((opts: { key: string; budget: string }) => {
+    try {
+      const keyBudget = parseBudgetString(opts.budget);
+      const config = loadConfig();
+      config.key_budgets[opts.key] = keyBudget;
+      saveConfig(config);
+      console.log(
+        chalk.green(
+          `Set budget: ${opts.key} → $${keyBudget.budget}/${keyBudget.period}`,
+        ),
+      );
+    } catch (err) {
+      console.error(chalk.red(String(err)));
+      process.exit(1);
+    }
+  });
+
+program
+  .command("keys")
+  .description("Show registered keys with spend vs budget")
+  .action(() => {
+    initDB();
+    const config = loadConfig();
+    const budgets = config.key_budgets;
+
+    if (Object.keys(budgets).length === 0) {
+      console.log(
+        chalk.dim(
+          "No key budgets configured. Use: tokenclaw set --key <prefix> --budget <amount>/<period>",
+        ),
+      );
+      return;
+    }
+
+    const todayStart = getBudgetWindowStart("day");
+
+    console.log(chalk.bold.underline("Key Budgets"));
+    for (const [prefix, budget] of Object.entries(budgets)) {
+      const since = getBudgetWindowStart(budget.period);
+      const spent = getSpendByKeyPrefix(prefix, since);
+      const pct =
+        budget.budget > 0 ? Math.round((spent / budget.budget) * 100) : 0;
+      const bar =
+        pct >= 100
+          ? chalk.red("BLOCKED")
+          : pct >= 80
+            ? chalk.yellow(`${pct}%`)
+            : chalk.green(`${pct}%`);
+
+      console.log(
+        `  ${chalk.white(prefix.padEnd(30))} ${fmtUSD(spent)} / ${fmtUSD(budget.budget)} ${budget.period}   (${bar})`,
+      );
+    }
+
+    // Show unregistered key spend
+    const breakdown = getKeyBreakdown(todayStart);
+    const registeredPrefixes = Object.keys(budgets);
+    const unregistered = breakdown.filter(
+      (row) =>
+        !registeredPrefixes.some(
+          (p) => row.api_key_prefix === p || row.api_key_prefix.startsWith(p),
+        ),
+    );
+
+    if (unregistered.length > 0) {
+      const unregTotal = unregistered.reduce((s, r) => s + r.total_cost, 0);
+      console.log(
+        chalk.dim(`  (unregistered keys)`.padEnd(32)) +
+          chalk.dim(`${fmtUSD(unregTotal)} today`) +
+          chalk.dim("           (no limit)"),
+      );
+    }
+  });
+
+program
+  .command("proxy")
+  .description("Start the local proxy server")
+  .option("--port <port>", "Port to listen on", "4040")
+  .action((opts: { port: string }) => {
+    const port = parseInt(opts.port, 10);
+    if (isNaN(port) || port < 1 || port > 65535) {
+      console.error(chalk.red("Invalid port number"));
+      process.exit(1);
+    }
+    startProxy(port);
   });
 
 program.parse();

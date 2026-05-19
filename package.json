@@ -1,7 +1,7 @@
 {
-  "name": "agentcap",
-  "version": "0.1.0",
-  "description": "Credit card fraud alerts for AI spend. Scans your AI tools, shows what you're spending, yells when something's wrong.",
+  "name": "tokenclaw",
+  "version": "0.2.0",
+  "description": "Per-key budget caps for AI agents. Local proxy enforces hard spend limits on API keys. Scans your tools, tracks costs, blocks when over budget.",
   "type": "module",
   "keywords": [
     "ai",
@@ -12,6 +12,8 @@
     "agents",
     "monitoring",
     "alerts",
+    "proxy",
+    "budget",
     "cli"
   ],
   "repository": {
@@ -19,7 +21,7 @@
     "url": "https://github.com/katrinalaszlo/agent-spend"
   },
   "bin": {
-    "agentcap": "./bin/acc.js"
+    "tokenclaw": "./bin/tokenclaw.js"
   },
   "files": [
     "dist",
@@ -28,7 +30,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx src/cli.ts",
-    "start": "node dist/cli.js"
+    "start": "node dist/cli.js",
+    "test": "tsx --test test/*.test.ts"
   },
   "author": "Kat Laszlo",
   "license": "MIT",

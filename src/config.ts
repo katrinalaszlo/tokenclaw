@@ -8,6 +8,13 @@ export interface EscalationRule {
   frequency: "daily" | "3x_daily" | "hourly";
 }
 
+export type BudgetPeriod = "day" | "week" | "month";
+
+export interface KeyBudget {
+  budget: number;
+  period: BudgetPeriod;
+}
+
 export interface AccConfig {
   thresholds: {
     daily: number;
@@ -20,6 +27,7 @@ export interface AccConfig {
   };
   escalation: EscalationRule[];
   acknowledge_ttl: number;
+  key_budgets: Record<string, KeyBudget>;
 }
 
 export const DEFAULT_CONFIG: AccConfig = {
@@ -38,10 +46,21 @@ export const DEFAULT_CONFIG: AccConfig = {
     { above: 1000, frequency: "hourly" },
   ],
   acknowledge_ttl: 24,
+  key_budgets: {},
 };
 
+export function parseBudgetString(s: string): KeyBudget {
+  const match = s.match(/^(\d+(?:\.\d+)?)\/(day|week|month)$/);
+  if (!match) {
+    throw new Error(
+      `Invalid budget format "${s}". Expected: 10/day, 500/week, or 2000/month`,
+    );
+  }
+  return { budget: Number(match[1]), period: match[2] as BudgetPeriod };
+}
+
 function getAccDir(): string {
-  return join(homedir(), ".acc");
+  return join(homedir(), ".tokenclaw");
 }
 
 export function getConfigPath(): string {
@@ -71,6 +90,7 @@ export function loadConfig(): AccConfig {
     },
     escalation: parsed.escalation ?? DEFAULT_CONFIG.escalation,
     acknowledge_ttl: parsed.acknowledge_ttl ?? DEFAULT_CONFIG.acknowledge_ttl,
+    key_budgets: parsed.key_budgets ?? {},
   };
 }
 
