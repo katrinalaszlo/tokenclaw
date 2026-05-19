@@ -247,7 +247,7 @@ function printScanResults(
   }
 
   console.log(
-    chalk.dim(`Run ${chalk.white("tokenclaw init")} to set up spend alerts.`),
+    chalk.dim(`Run ${chalk.white("tokenclaw setup")} to configure alerts.`),
   );
 }
 
@@ -729,8 +729,27 @@ const program = new Command();
 
 program
   .name("tokenclaw")
-  .description("Claw back your agent spend — per-key budget caps + local proxy")
-  .version("0.2.0")
+  .description("See, alert, and control AI agent spend")
+  .version("0.5.0")
+  .addHelpText(
+    "after",
+    `
+Observe:
+  scan (default)       Scan local tools, show spend
+  list <view>          models, projects, trends, usage, efficiency
+  status               Current spend + burn rate
+
+Alert:
+  setup                Configure daily budget + Slack webhook
+  watch                Monitor hourly, alert on threshold
+  ack                  Silence alerts for 24h
+
+Control (experimental):
+  proxy                Start per-key enforcement proxy
+  set                  Set per-key budget with warn/block rules
+  keys                 View spend vs budget per key
+`,
+  )
   .option("--no-color", "Disable colored output")
   .option("--config <path>", "Custom config file path")
   .hook("preAction", (_thisCommand, _actionCommand) => {
@@ -790,8 +809,8 @@ program
   });
 
 program
-  .command("init")
-  .description("Interactive first-run setup")
+  .command("setup")
+  .description("Configure alerts (daily budget, Slack webhook)")
   .action(async () => {
     await runInit();
   });

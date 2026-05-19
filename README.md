@@ -55,7 +55,7 @@ tokenclaw list efficiency   # cache hit rates, cost per session
 ### Get alerts
 
 ```bash
-tokenclaw init
+tokenclaw setup
 ```
 
 ```
@@ -125,7 +125,7 @@ Auto-detects provider: `/v1/messages` → Anthropic, `/v1/chat/completions` → 
 |---|---|
 | `tokenclaw` | Scan local AI tools, show spend |
 | `tokenclaw list <view>` | Detailed views: models, projects, trends, usage, efficiency |
-| `tokenclaw init` | Set up alerts (daily budget, Slack) |
+| `tokenclaw setup` | Set up alerts (daily budget, Slack) |
 | `tokenclaw watch` | Monitor spend, alert hourly |
 | `tokenclaw status` | Current spend + alert status |
 | `tokenclaw ack` | Silence alerts for 24h |
