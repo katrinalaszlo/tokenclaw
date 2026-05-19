@@ -27,11 +27,11 @@
   Verify: `npm run build && curl -X POST http://localhost:4040/v1/messages -H "x-api-key: test" -H "content-type: application/json" -d '{"model":"claude-sonnet-4-6","max_tokens":10,"messages":[{"role":"user","content":"hi"}]}'`
 
 ## Phase 4: CLI commands
-- [ ] `agentcap set --key <prefix> --budget <amount>/<period>` — save to config
-- [ ] `agentcap keys` — show registered keys with spend vs budget
-- [ ] `agentcap proxy` — start the proxy server (foreground)
-- [ ] `agentcap proxy --port <port>` — custom port (default 4040)
-- [ ] Update `agentcap status` to include key breakdown if proxy data exists
+- [ ] `tokenclaw set --key <prefix> --budget <amount>/<period>` — save to config
+- [ ] `tokenclaw keys` — show registered keys with spend vs budget
+- [ ] `tokenclaw proxy` — start the proxy server (foreground)
+- [ ] `tokenclaw proxy --port <port>` — custom port (default 4040)
+- [ ] Update `tokenclaw status` to include key breakdown if proxy data exists
   Verify: `npx tsx src/cli.ts set --key sk-test --budget 10/day && npx tsx src/cli.ts keys`
 
 ## Phase 5: Alert integration
@@ -46,5 +46,5 @@
 - [ ] Integration test: proxy forwards real request (needs API key)
 - [ ] Update landing page with proxy messaging
 - [ ] Update README
-- [ ] `npm run build && npm publish` as agentcap@0.2.0
-  Verify: `npx agentcap proxy --help`
+- [ ] `npm run build && npm publish` as tokenclaw@0.2.0
+  Verify: `npx tokenclaw proxy --help`

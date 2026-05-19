@@ -1,4 +1,4 @@
-# agentcap — Progress
+# tokenclaw — Progress
 
 ## Session: 2026-05-18 (v0.1.0)
 
@@ -11,9 +11,9 @@
 - All dollar amounts marked as estimated (~$) since they're token-based estimates
 - Install section with copy buttons, 9 supported tools listed
 - GitHub + npm links throughout
-- Renamed to agentcap, published to npm as agentcap@0.1.0
-- Created GitHub repo katrinalaszlo/agent-spend
-- Enabled GitHub Pages at katrinalaszlo.github.io/agent-spend
+- Renamed to tokenclaw, published to npm as tokenclaw@0.1.0
+- Created GitHub repo katrinalaszlo/tokenclaw
+- Enabled GitHub Pages at tokenclaw.dev
 - Updated gap-analysis.md with market-level gaps section
 - Moved site/ to docs/ for GitHub Pages, research docs to research/
 
@@ -29,15 +29,15 @@
 - `src/config.ts` — added KeyBudget type, key_budgets to AccConfig, parseBudgetString()
 - `src/db.ts` — added proxy_requests table, insertProxyRequest, getSpendByKeyPrefix, getKeyBreakdown
 - `src/scanners/local.ts` — imports pricing from shared module (removed duplicate)
-- `src/cli.ts` — added set/keys/proxy commands, updated name to "agentcap", version to 0.2.0
+- `src/cli.ts` — added set/keys/proxy commands, updated name to "tokenclaw", version to 0.2.0
 - `package.json` — version 0.2.0, added test script, updated description/keywords
 
 ### Verified
 - `npm run build` passes clean
 - `npm test` — 24/24 tests pass
-- `agentcap set --key X --budget Y/period` persists to config
-- `agentcap keys` reads budget + spend correctly
-- `agentcap proxy` starts, forwards to Anthropic, returns 401/429 correctly
+- `tokenclaw set --key X --budget Y/period` persists to config
+- `tokenclaw keys` reads budget + spend correctly
+- `tokenclaw proxy` starts, forwards to Anthropic, returns 401/429 correctly
 - Budget blocking: returns 429 with clear error message naming the CLI fix command
 - Unregistered keys: forward with no limit, spend tracked
 
@@ -45,4 +45,4 @@
 - E2E test with real Anthropic key (streaming token parsing — the production path)
 - Landing page update with proxy messaging
 - README update
-- npm publish agentcap@0.2.0
+- npm publish tokenclaw@0.2.0

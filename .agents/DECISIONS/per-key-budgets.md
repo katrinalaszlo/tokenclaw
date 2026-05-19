@@ -31,4 +31,4 @@
 - **Parked.** Useful later as enrichment on top of proxy.
 
 ## Risk: Proxy is the crowded lane
-14+ companies building agent spend enforcement. Stripe will absorb this. Counter-argument: none of them are local-first CLI tools for individual developers. They're all SaaS/enterprise. A `npx agentcap proxy` that runs locally is a different product.
+14+ companies building agent spend enforcement. Stripe will absorb this. Counter-argument: none of them are local-first CLI tools for individual developers. They're all SaaS/enterprise. A `npx tokenclaw proxy` that runs locally is a different product.

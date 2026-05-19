@@ -1,5 +1,5 @@
 const NAV_CONFIG = {
-  logo: { icon: "$", text: "agentcap" },
+  logo: { icon: "$", text: "tokenclaw" },
   sections: [
     {
       label: "Monitor",

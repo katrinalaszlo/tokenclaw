@@ -18,7 +18,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/katrinalaszlo/agent-spend"
+    "url": "https://github.com/katrinalaszlo/tokenclaw"
   },
   "bin": {
     "tokenclaw": "./bin/tokenclaw.js"
