@@ -523,16 +523,27 @@ program
     "--budget <amount>",
     "Budget in format: 10/day, 500/week, 2000/month",
   )
-  .action((opts: { key: string; budget: string }) => {
+  .option(
+    "--mode <mode>",
+    "alert (notify only) or enforce (block requests)",
+    "enforce",
+  )
+  .action((opts: { key: string; budget: string; mode: string }) => {
     try {
-      const keyBudget = parseBudgetString(opts.budget);
+      const mode =
+        opts.mode === "alert" ? ("alert" as const) : ("enforce" as const);
+      const keyBudget = { ...parseBudgetString(opts.budget), mode };
       const config = loadConfig();
       config.key_budgets[opts.key] = keyBudget;
       saveConfig(config);
+      const modeLabel =
+        mode === "alert"
+          ? chalk.yellow("alert only")
+          : chalk.red("enforce (blocks requests)");
       console.log(
         chalk.green(
           `Set budget: ${opts.key} → $${keyBudget.budget}/${keyBudget.period}`,
-        ),
+        ) + chalk.dim(` [${modeLabel}]`),
       );
     } catch (err) {
       console.error(chalk.red(String(err)));
@@ -565,15 +576,19 @@ program
       const spent = getSpendByKeyPrefix(prefix, since);
       const pct =
         budget.budget > 0 ? Math.round((spent / budget.budget) * 100) : 0;
+      const modeTag =
+        budget.mode === "alert" ? chalk.yellow("alert") : chalk.red("enforce");
       const bar =
         pct >= 100
-          ? chalk.red("BLOCKED")
+          ? budget.mode === "enforce"
+            ? chalk.red("BLOCKED")
+            : chalk.yellow("OVER")
           : pct >= 80
             ? chalk.yellow(`${pct}%`)
             : chalk.green(`${pct}%`);
 
       console.log(
-        `  ${chalk.white(prefix.padEnd(30))} ${fmtUSD(spent)} / ${fmtUSD(budget.budget)} ${budget.period}   (${bar})`,
+        `  ${chalk.white(prefix.padEnd(30))} ${fmtUSD(spent)} / ${fmtUSD(budget.budget)} ${budget.period}   (${bar})  ${chalk.dim(`[${modeTag}]`)}`,
       );
     }
 
