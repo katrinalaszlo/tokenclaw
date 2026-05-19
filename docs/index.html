@@ -3,125 +3,215 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>tokenclaw — Claw back your agent spend</title>
-  <meta property="og:title" content="tokenclaw — Claw back your agent spend">
-  <meta property="og:description" content="Per-key budget caps for AI agents. Local proxy. Hard stop.">
+  <title>tokenclaw — View, alert, and control AI agent spend</title>
+  <meta property="og:title" content="tokenclaw — View, alert, and control AI agent spend">
+  <meta property="og:description" content="Hard limits for AI agent spend. Set rules per API key. Get alerts or block requests when limits are hit.">
   <meta property="og:image" content="https://tokenclaw.dev/tokenclaw-banner.jpg">
   <meta property="og:type" content="website">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="tokenclaw — Claw back your agent spend">
+  <meta name="twitter:title" content="tokenclaw — View, alert, and control AI agent spend">
   <meta name="twitter:image" content="https://tokenclaw.dev/tokenclaw-banner.jpg">
-  <link rel="stylesheet" href="styles.css">
-</head>
-<body class="landing-body">
+  <style>
+    @import url("https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-sans/style.css");
+    @import url("https://cdn.jsdelivr.net/npm/geist@1.3.0/dist/fonts/geist-mono/style.css");
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #09090b; --surface: #18181b; --border: #27272a;
+      --text: #fafafa; --muted: #71717a; --accent: #22d3ee;
+      --danger: #ef4444; --success: #22c55e; --warning: #f59e0b;
+      --font: "Geist Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+      --mono: "Geist Mono", "Consolas", monospace;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    code { font-family: var(--mono); font-size: 0.9em; background: var(--surface); padding: 2px 6px; border-radius: 4px; }
 
-  <nav class="landing-nav">
-    <div class="nav-brand">tokenclaw</div>
-    <ul class="nav-links">
-      <li><a href="https://github.com/katrinalaszlo/tokenclaw" style="display:inline-flex;align-items:center;gap:5px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></li>
-      <li><a href="https://www.npmjs.com/package/tokenclaw-dev">npm</a></li>
-    </ul>
+    /* Layout */
+    .container { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+    /* Nav */
+    nav { padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; max-width: 720px; margin: 0 auto; }
+    nav .brand { font-family: var(--mono); font-weight: 600; font-size: 15px; color: var(--text); }
+    nav .links { display: flex; gap: 20px; font-size: 13px; }
+    nav .links a { color: var(--muted); }
+
+    /* Hero */
+    .hero { text-align: center; padding: 60px 24px 40px; }
+    .hero img { max-width: 500px; width: 100%; border-radius: 12px; margin-bottom: 32px; }
+    .hero h1 { font-size: 1.6rem; font-weight: 600; line-height: 1.4; margin-bottom: 12px; }
+    .hero p { font-size: 15px; color: var(--muted); line-height: 1.6; max-width: 520px; margin: 0 auto; }
+
+    /* Install bar */
+    .install { max-width: 440px; margin: 24px auto 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+    .install code { background: none; padding: 0; font-size: 14px; color: var(--text); }
+    .install .g { color: var(--success); }
+    .install button { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 4px 10px; color: var(--muted); font-size: 11px; cursor: pointer; font-family: var(--font); }
+
+    /* Comic */
+    .comic { text-align: center; padding: 20px 24px 50px; }
+    .comic img { max-width: 380px; width: 100%; border-radius: 12px; }
+
+    /* Quotes */
+    .quotes { padding: 0 0 40px; }
+    .quotes div { font-family: var(--mono); font-size: 13px; color: var(--muted); line-height: 2.2; }
+    .quotes .num { color: var(--danger); }
+    .quotes .warn { color: var(--warning); }
+
+    /* Section */
+    .section { padding: 40px 0; }
+    .section h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 20px; }
+    .section p { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+
+    /* Steps */
+    .steps { display: flex; flex-direction: column; gap: 24px; }
+    .step { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+    .step-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 8px; }
+    .step-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+    .step-code { font-family: var(--mono); font-size: 13px; line-height: 1.8; color: var(--text); background: var(--bg); border-radius: 6px; padding: 12px 16px; margin-top: 8px; }
+    .step-code .g { color: var(--success); }
+    .step-code .m { color: var(--muted); }
+    .step-code .r { color: var(--danger); }
+    .step-code .y { color: var(--warning); }
+
+    /* How it works image */
+    .how-img { text-align: center; padding: 20px 0 40px; }
+    .how-img img { max-width: 560px; width: 100%; border-radius: 12px; }
+
+    /* Features */
+    .features { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 40px; }
+    .feat { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+    .feat-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .feat-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+
+    /* CTA */
+    .cta { text-align: center; padding: 40px 0 60px; }
+    .cta .btn { display: inline-block; padding: 10px 24px; border-radius: 8px; font-size: 14px; font-weight: 500; margin: 0 6px; }
+    .btn-primary { background: var(--accent); color: var(--bg); }
+    .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+
+    /* Footer */
+    footer { text-align: center; padding: 20px 0 40px; font-size: 12px; color: var(--muted); }
+
+    @media (max-width: 500px) {
+      .features { grid-template-columns: 1fr; }
+      .hero h1 { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="brand">tokenclaw</div>
+    <div class="links">
+      <a href="https://github.com/katrinalaszlo/tokenclaw">GitHub</a>
+      <a href="https://www.npmjs.com/package/tokenclaw-dev">npm</a>
+    </div>
   </nav>
 
-  <!-- 1. Scan: see your spend -->
   <section class="hero">
-    <div class="hero-badge">Open Source</div>
-    <h1 style="font-size:1.3rem;font-weight:400;color:var(--text-secondary);margin-bottom:20px;">see what your AI agents are spending</h1>
-
-    <div class="card" style="max-width:480px;margin:0 auto;">
-      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:14px 20px;font-family:var(--mono);font-size:15px;display:flex;align-items:center;justify-content:space-between;">
-        <div><span style="color:var(--success);">$</span> <span style="color:var(--text-primary);">npx tokenclaw-dev</span></div>
-        <button onclick="navigator.clipboard.writeText('npx tokenclaw-dev')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:var(--font);">Copy</button>
-      </div>
-    </div>
-    <p style="color:var(--text-muted);font-size:12px;margin-top:10px;">scans 9 AI tools on your machine. no signup. no API keys.</p>
-  </section>
-
-  <!-- Dashboard preview -->
-  <section style="padding:20px 48px 60px;text-align:center;">
-    <img src="dashboard-preview.png" alt="tokenclaw dashboard showing spend breakdown per tool" style="max-width:800px;width:100%;border-radius:12px;border:1px solid var(--border);">
-    <p style="color:var(--text-muted);font-size:12px;margin-top:10px;"><code style="font-size:11px;background:var(--bg-hover);padding:2px 6px;border-radius:3px;">tokenclaw dashboard</code> opens this in your browser</p>
-  </section>
-
-  <!-- 2. The problem -->
-  <section style="padding:40px 48px 50px;max-width:650px;margin:0 auto;">
-    <div style="font-family:var(--mono);font-size:13px;line-height:2.4;color:var(--text-secondary);">
-      <div>"I left an agent running overnight. <span style="color:var(--danger);">$280.</span>"</div>
-      <div>"I blew through <span style="color:var(--danger);">$124 in a day</span>. I had no idea."</div>
-      <div>"Agent infinite loop. <span style="color:var(--danger);">$4,200</span> in a weekend."</div>
-      <div>"I set a spending limit. <span style="color:var(--warning);">It was just an email.</span>"</div>
-    </div>
-    <p style="color:var(--text-muted);font-size:13px;margin-top:20px;line-height:1.7;">No per-key limits. No daily budgets. You find out after the money's gone.</p>
-  </section>
-
-  <!-- 3. The solution: simple commands -->
-  <section style="padding:20px 48px 60px;max-width:650px;margin:0 auto;">
-    <h2 style="font-size:1.1rem;font-weight:500;color:var(--text-primary);margin-bottom:24px;text-align:center;">set a budget. start the proxy. that's it.</h2>
-
-    <div style="display:flex;flex-direction:column;gap:16px;">
-      <div class="card" style="padding:16px 20px;">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">give each API key a daily budget</div>
-        <div style="font-family:var(--mono);font-size:13px;color:var(--text-primary);">
-          <span style="color:var(--success);">$</span> tokenclaw set --key sk-ant-proj-research --budget 10/day
-        </div>
-      </div>
-
-      <div class="card" style="padding:16px 20px;">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">start the proxy between your agents and the API</div>
-        <div style="font-family:var(--mono);font-size:13px;color:var(--text-primary);">
-          <span style="color:var(--success);">$</span> tokenclaw proxy
-        </div>
-      </div>
-
-      <div class="card" style="padding:16px 20px;">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">point your agent at it</div>
-        <div style="font-family:var(--mono);font-size:13px;color:var(--text-primary);">
-          <span style="color:var(--success);">$</span> ANTHROPIC_BASE_URL=http://localhost:4040 claude
-        </div>
-      </div>
-
-      <div class="card" style="padding:16px 20px;">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">over budget?</div>
-        <div style="font-family:var(--mono);font-size:13px;color:var(--danger);">
-          BLOCKED &mdash; $10.42 / $10.00 day
-        </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">"but I was almost done!" ... "you're done."</div>
-      </div>
+    <img src="tokenclaw-banner.jpg" alt="tokenclaw logo">
+    <h1>View, alert, and control<br>AI agent spend in real time.</h1>
+    <p>AI agents don't stop when something goes wrong. They keep running and silently burn through API budgets. tokenclaw gives you control before it becomes a surprise bill.</p>
+    <div class="install">
+      <code><span class="g">$</span> npm install -g tokenclaw-dev</code>
+      <button onclick="navigator.clipboard.writeText('npm install -g tokenclaw-dev');this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)">Copy</button>
     </div>
   </section>
 
-  <!-- Features: one line each -->
-  <section style="padding:0 48px 60px;max-width:650px;margin:0 auto;">
-    <div style="font-size:13px;color:var(--text-muted);line-height:2.2;">
-      <div><span style="color:var(--text-primary);">Anthropic + OpenAI</span> auto-detected. Also Groq, Together, Fireworks.</div>
-      <div><span style="color:var(--text-primary);">Slack alerts</span> at 80% and 100%. Gets louder if you ignore it.</div>
-      <div><span style="color:var(--text-primary);">Runs on localhost.</span> No cloud. No telemetry. No account.</div>
-      <div><span style="color:var(--text-primary);">Daily, weekly, or monthly</span> budgets per key.</div>
-    </div>
+  <section class="comic">
+    <img src="tokenclaw-overnight.jpg" alt="11pm: sleeping while agent runs. 6am: $2,847 bill.">
   </section>
 
-  <!-- 4. CTA -->
-  <section class="cta-section">
-    <div class="hero-cta">
-      <a href="https://github.com/katrinalaszlo/tokenclaw" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+  <div class="container">
+
+    <section class="quotes">
+      <div>"I left an agent running overnight. <span class="num">$280.</span>"</div>
+      <div>"Agent entered an infinite loop. <span class="num">$4,200</span> in a weekend."</div>
+      <div>"I set a spending limit. <span class="warn">Turns out it was just an email.</span>"</div>
+    </section>
+
+    <section class="section">
+      <h2>Three steps.</h2>
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-label">1. Set rules</div>
+          <div class="step-title">Give each API key a budget and thresholds.</div>
+          <div class="step-code">
+            <span class="g">$</span> tokenclaw set --key sk-ant-research --budget 10/day \<br>
+            &nbsp;&nbsp;--warn 80% --block 100%
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-label">2. Start the proxy</div>
+          <div class="step-title">One command. Runs on localhost.</div>
+          <div class="step-code">
+            <span class="g">$</span> tokenclaw proxy<br>
+            <span class="m"># point your agent at it</span><br>
+            <span class="g">$</span> ANTHROPIC_BASE_URL=http://localhost:4040 claude
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-label">3. Rules enforced</div>
+          <div class="step-title">Warn at 80%. Block at 100%. Nothing blocked unless you say so.</div>
+          <div class="step-code">
+            <span class="y">WARNING: sk-ant-research at 84% of budget</span><br>
+            ...<br>
+            <span class="r">BLOCKED — $10.42 / $10.00 day</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <div class="how-img">
+      <img src="tokenclaw-proxy.jpg" alt="tokenclaw proxy directing traffic between providers">
+    </div>
+
+    <section class="section">
+      <h2>How it works</h2>
+      <p>tokenclaw sits between your agents and model providers. Every request: identify the API key, check spend against your rules, forward or block. Auto-detects Anthropic and OpenAI from the request path. One proxy.</p>
+    </section>
+
+    <section class="features">
+      <div class="feat">
+        <div class="feat-title">Per-key budgets</div>
+        <div class="feat-desc">Daily, weekly, or monthly. Each key gets its own rules.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Progressive rules</div>
+        <div class="feat-desc">Warn at 50%, warn again at 80%, block at 100%. You decide.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Slack alerts</div>
+        <div class="feat-desc">Get notified when thresholds fire. Or just watch the logs.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Safe by default</div>
+        <div class="feat-desc">Nothing blocked unless you add a --block rule. Default is warn-only.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Multi-provider</div>
+        <div class="feat-desc">Anthropic, OpenAI, Groq, Together, Fireworks. One proxy.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-title">Runs on localhost</div>
+        <div class="feat-desc">No cloud. No telemetry. No account. Your requests stay yours.</div>
+      </div>
+    </section>
+
+    <section class="cta">
+      <a href="https://github.com/katrinalaszlo/tokenclaw" class="btn btn-primary">GitHub</a>
       <a href="https://www.npmjs.com/package/tokenclaw-dev" class="btn btn-secondary">npm</a>
-    </div>
-    <p style="color:var(--text-muted);font-size:12px;margin-top:16px;">missing a provider? <a href="https://github.com/katrinalaszlo/tokenclaw/issues" style="color:var(--accent);">open an issue</a> or send a PR.</p>
-  </section>
+      <p style="margin-top:16px;font-size:12px;color:var(--muted);">Missing a provider? <a href="https://github.com/katrinalaszlo/tokenclaw/issues">Open an issue</a> or send a PR.</p>
+    </section>
 
-  <footer class="landing-footer">
-    tokenclaw &middot; MIT &middot; local only
-  </footer>
+  </div>
 
-<script>
-document.querySelectorAll('button[onclick*="clipboard"]').forEach(btn => {
-  btn.addEventListener('click', function() {
-    const orig = this.textContent;
-    this.textContent = 'Copied!';
-    this.style.color = 'var(--success)';
-    setTimeout(() => { this.textContent = orig; this.style.color = 'var(--text-muted)'; }, 1500);
-  });
-});
-</script>
+  <footer>tokenclaw &middot; MIT &middot; local only</footer>
+
 </body>
 </html>
