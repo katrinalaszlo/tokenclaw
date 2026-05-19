@@ -223,11 +223,19 @@ async function runScan(): Promise<void> {
   // Persist to DB
   persistScanToDB(found);
 
-  console.log(
-    chalk.dim("\nRun ") +
-      chalk.white("tokenclaw dashboard") +
-      chalk.dim(" to open the full breakdown in your browser."),
+  const rl = createInterface({ input: stdin, output: stdout });
+  const answer = await rl.question(
+    chalk.dim("\nOpen dashboard with full breakdown? ") + chalk.white("(Y/n) "),
   );
+  rl.close();
+
+  if (
+    !answer ||
+    answer.toLowerCase() === "y" ||
+    answer.toLowerCase() === "yes"
+  ) {
+    await runDashboard();
+  }
 }
 
 async function runWatch(once: boolean): Promise<void> {
