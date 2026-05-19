@@ -222,7 +222,12 @@ async function runScan(): Promise<void> {
 
   // Persist to DB
   persistScanToDB(found);
-  console.log(chalk.dim("\nSnapshots saved to DB."));
+
+  console.log(
+    chalk.dim("\nRun ") +
+      chalk.white("tokenclaw dashboard") +
+      chalk.dim(" to open the full breakdown in your browser."),
+  );
 }
 
 async function runWatch(once: boolean): Promise<void> {
