@@ -44,39 +44,38 @@ npm install -g tokenclaw-dev
 
 ## Quick start
 
-### 1. See what you're spending
+### 1. Scan
 
 ```bash
 tokenclaw
 ```
 
-Scans your machine for AI tools and shows what each one costs. No config needed.
+Reads the local session logs that AI tools leave on your machine (`~/.claude/projects/`, `~/.cursor/projects/`, etc.), counts tokens, and estimates cost. Nothing is sent anywhere.
 
-Detects: Claude Code, OpenClaw, Cursor, Windsurf, Claude Desktop, Cline, Roo Code, Aider, Continue.dev.
+### 2. Set a daily budget
 
-### 2. Set an alert
+First run asks two questions:
 
-```bash
-tokenclaw set --key sk-ant-research --budget 10/day --warn 80%
-```
+- **Daily spend limit** — alert when total spend crosses this (default: $100/day)
+- **Slack webhook URL** — where to send alerts ([create one here](https://api.slack.com/messaging/webhooks))
 
-You'll get a Slack alert when that key hits 80% of its daily budget. Nothing is blocked.
+That's it. Config is saved to `~/.tokenclaw/config.yaml`. Change it anytime with `tokenclaw init`.
 
-### 3. Monitor
+### 3. Start monitoring
 
 ```bash
 tokenclaw watch
 ```
 
-Checks spend every hour. Fires alerts when thresholds are crossed.
+Re-scans your local session logs every hour. Sends a Slack alert when spend crosses your daily or weekly threshold. Runs in the foreground — add it to cron or run in a background terminal.
 
-That's it. No proxy needed for alerts.
+This gives you a budget on **total spend across all tools**. If you want budgets and limits **per API key**, keep reading.
 
 ---
 
-## Want hard limits? Add the proxy
+## Per-key budgets and hard limits
 
-The proxy sits between your agents and the API. It can block requests when a budget is exceeded.
+The proxy sits between your agents and the API. It tracks spend per API key and can block requests when a budget is exceeded.
 
 ```bash
 tokenclaw proxy
