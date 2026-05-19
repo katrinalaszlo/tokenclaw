@@ -32,75 +32,84 @@ npm install -g tokenclaw-dev
 
 ---
 
-## Spend — see what you're spending
+## View — see your API spend
 
 ```bash
-tokenclaw                         # scan local tools, show spend
-tokenclaw spend status            # current spend + burn rate
-tokenclaw spend list models       # cost breakdown by model
-tokenclaw spend list projects     # cost breakdown by project
-tokenclaw spend list trends       # daily spend over time
-tokenclaw spend list usage        # token counts and breakdown
-tokenclaw spend list efficiency   # cache hit rates, cost per session
+tokenclaw view models             # cost by model
+tokenclaw view projects           # cost by project
+tokenclaw view trends             # daily spend over time
+tokenclaw view usage              # token counts
+tokenclaw view efficiency         # cache rates, cost per session
 ```
 
-Reads the session logs that AI tools store locally (Claude Code, Cursor, Windsurf, etc.), counts tokens, and estimates cost. Nothing leaves your machine.
+Reads session logs that AI tools store locally (Claude Code, Cursor, Windsurf, etc.), counts tokens, estimates cost. API-billed tools only. Nothing leaves your machine.
 
 ---
 
-## Alert — get notified
+## Alert — get notified when you spend too much
+
+Connect Slack:
 
 ```bash
-tokenclaw alert setup             # interactive: set daily budget + Slack webhook
-tokenclaw alert set --daily 50    # set daily threshold to $50
-tokenclaw alert set --weekly 250  # set weekly threshold to $250
-tokenclaw alert watch             # monitor hourly, alert when thresholds crossed
-tokenclaw alert ack               # silence alerts for 24h
+tokenclaw alert setup
 ```
 
-When total API spend crosses your threshold, you get a Slack alert. ([Create a webhook here.](https://api.slack.com/messaging/webhooks))
-
-Set Slack directly:
+Or set it directly:
 
 ```bash
 tokenclaw config slack https://hooks.slack.com/services/T00/B00/xxx
 ```
 
----
-
-## Budget — set spend limits per key
+Set thresholds:
 
 ```bash
-tokenclaw budget set --key sk-ant-research --budget 500/month
-tokenclaw budget list             # show all budgets
-tokenclaw budget show sk-ant-research  # show details for a key
+tokenclaw alert set --daily 50    # alert at $50/day
+tokenclaw alert set --weekly 250  # alert at $250/week
 ```
 
-Budgets are policy. They define how much a key should spend. Enforcement is separate.
+Start monitoring:
+
+```bash
+tokenclaw alert watch             # checks every hour, sends Slack when threshold crossed
+tokenclaw alert ack               # silence alerts for 24h
+```
+
+`watch` must be running for alerts to fire. Run it in a background terminal or add to cron.
 
 ---
 
-## Control — enforce limits via proxy (Experimental)
+## Control — block requests when a key goes over budget
 
-The proxy sits between your agents and the API. It tracks spend per API key and can block requests.
+Requires the proxy. The proxy sits between your agents and the API, tracks spend per key, and blocks requests when limits are hit.
+
+Start the proxy:
 
 ```bash
-tokenclaw control proxy                                  # start the proxy
-tokenclaw control set --key sk-ant-research --warn-at 80% --block-at 100%  # enforcement rules
-tokenclaw control keys                                   # view enforcement status
+tokenclaw control proxy
 ```
 
-Point your agent at the proxy:
+Point your agent at it:
 
 ```bash
 ANTHROPIC_BASE_URL=http://localhost:4040 claude
 OPENAI_BASE_URL=http://localhost:4040 your-agent
 ```
 
-- At 80% — Slack alert
-- At 100% — proxy returns 429, request stopped
+Set a per-key limit:
 
-Nothing is blocked unless you set `--block-at`. Default is warn-only.
+```bash
+tokenclaw control set --key sk-ant-research --daily 10
+tokenclaw control set --key sk-ant-research --daily 10 --warn 80 --block 100
+```
+
+- `--warn 80` — Slack alert at 80% ($8)
+- `--block 100` — proxy returns 429 at 100% ($10)
+
+Nothing is blocked unless you add `--block`. Default is warn at 80%.
+
+```bash
+tokenclaw control keys            # show all keys and their limits
+```
 
 <p align="center">
   <img src="docs/tokenclaw-proxy.jpg" alt="tokenclaw crab directing traffic between Anthropic and OpenAI" width="600">
