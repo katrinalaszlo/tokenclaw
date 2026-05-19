@@ -154,40 +154,6 @@ export function generateDashboard(data: DashboardData): string {
         .join("")
     : '<div class="empty-state"><div class="empty-icon">&#128269;</div><div class="empty-title">No model data</div></div>';
 
-  // --- Budget utilization gauges for subscription tools ---
-  const gaugesHtml = subscriptionTools.length
-    ? subscriptionTools
-        .map((t) => {
-          const budget = t.planCost ?? 0;
-          if (budget <= 0) return "";
-          const pct = Math.min(100, Math.round((t.cost / budget) * 100));
-          const circumference = 2 * Math.PI * 42; // ~263.89
-          const offset = circumference - (pct / 100) * circumference;
-          let color = "var(--green)";
-          let textClass = "text-green";
-          if (pct >= 90) {
-            color = "var(--red)";
-            textClass = "text-red";
-          } else if (pct >= 70) {
-            color = "var(--amber)";
-            textClass = "text-amber";
-          }
-          return `
-          <div class="gauge-item">
-            <div class="gauge-ring">
-              <svg viewBox="0 0 100 100">
-                <circle class="gauge-bg" cx="50" cy="50" r="42" stroke-dasharray="${circumference.toFixed(0)}" stroke-dashoffset="0"></circle>
-                <circle class="gauge-value" cx="50" cy="50" r="42" stroke="${color}" stroke-dasharray="${circumference.toFixed(0)}" stroke-dashoffset="${offset.toFixed(2)}"></circle>
-              </svg>
-              <div class="gauge-percent ${textClass}">${pct}%</div>
-            </div>
-            <div class="gauge-label">${escapeHtml(t.name)}</div>
-            <div class="gauge-sublabel">${fmtCost(t.cost)} / ${fmtCost(budget)}</div>
-          </div>`;
-        })
-        .join("")
-    : "";
-
   // --- Agent cost table rows ---
   const sortedTools = [...data.tools].sort((a, b) => {
     const costA =
@@ -210,32 +176,6 @@ export function generateDashboard(data: DashboardData): string {
           ? `${fmtCost(t.planCost ?? 0)}/mo`
           : fmtCost(t.cost);
 
-      // Utilization bar only for subscription tools
-      let utilizationHtml = "";
-      if (t.billingType === "subscription" && t.planCost && t.planCost > 0) {
-        const pct = Math.min(100, Math.round((t.cost / t.planCost) * 100));
-        let fillClass = "green";
-        if (pct >= 90) fillClass = "red";
-        else if (pct >= 70) fillClass = "amber";
-        return `
-            <tr>
-              <td><span class="agent-name">${escapeHtml(t.name)}</span></td>
-              <td>${badgeHtml}</td>
-              <td class="mono">${costDisplay}</td>
-              <td class="mono">${fmtCost(t.cost)}</td>
-              <td class="mono">${t.sessions.toLocaleString()}</td>
-              <td class="mono">${fmt(t.tokens)}</td>
-              <td>
-                <div style="display:flex;align-items:center;gap:8px;">
-                  <div class="progress-bar" style="width:100px;">
-                    <div class="progress-fill ${fillClass}" style="width:${pct}%;"></div>
-                  </div>
-                  <span class="mono text-secondary" style="font-size:12px;">${pct}%</span>
-                </div>
-              </td>
-            </tr>`;
-      }
-
       return `
             <tr>
               <td><span class="agent-name">${escapeHtml(t.name)}</span></td>
@@ -244,7 +184,6 @@ export function generateDashboard(data: DashboardData): string {
               <td class="mono">${fmtCost(t.cost)}</td>
               <td class="mono">${t.sessions.toLocaleString()}</td>
               <td class="mono">${fmt(t.tokens)}</td>
-              <td><span class="text-muted">&mdash;</span></td>
             </tr>`;
     })
     .join("");
@@ -1387,22 +1326,6 @@ a:hover {
         </div>
       </div>
 
-      ${
-        gaugesHtml
-          ? `<!-- Budget Utilization -->
-      <div class="card mb-24">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Budget Utilization</div>
-            <div class="card-subtitle">Subscription tools &mdash; current period</div>
-          </div>
-        </div>
-        <div class="gauge-grid">
-          ${gaugesHtml}
-        </div>
-      </div>`
-          : ""
-      }
 
       <!-- Agent Cost Table -->
       <div class="card mt-24" style="padding:0;">
@@ -1423,7 +1346,6 @@ a:hover {
               <th>API Usage</th>
               <th>Sessions</th>
               <th>Tokens</th>
-              <th>Utilization</th>
             </tr>
           </thead>
           <tbody>
