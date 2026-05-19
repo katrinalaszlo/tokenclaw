@@ -23,77 +23,84 @@
     </ul>
   </nav>
 
+  <!-- 1. Scan: see your spend -->
   <section class="hero">
     <div class="hero-badge">Open Source</div>
-    <h1 style="font-size:1.4rem;font-weight:500;color:var(--text-secondary);margin-bottom:24px;">scan to see your agent spend</h1>
+    <h1 style="font-size:1.3rem;font-weight:400;color:var(--text-secondary);margin-bottom:20px;">see what your AI agents are spending</h1>
 
-    <div class="card" style="max-width:500px;margin:0 auto;">
-      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:16px 20px;font-family:var(--mono);font-size:15px;display:flex;align-items:center;justify-content:space-between;">
+    <div class="card" style="max-width:480px;margin:0 auto;">
+      <div style="background:var(--bg-primary);border-radius:var(--radius-md);padding:14px 20px;font-family:var(--mono);font-size:15px;display:flex;align-items:center;justify-content:space-between;">
         <div><span style="color:var(--success);">$</span> <span style="color:var(--text-primary);">npx tokenclaw-dev</span></div>
         <button onclick="navigator.clipboard.writeText('npx tokenclaw-dev')" style="background:var(--bg-hover);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 10px;color:var(--text-muted);font-size:11px;cursor:pointer;font-family:var(--font);">Copy</button>
       </div>
     </div>
+    <p style="color:var(--text-muted);font-size:12px;margin-top:10px;">scans 9 AI tools on your machine. no signup. no API keys.</p>
   </section>
 
-  <!-- Terminal: the whole story -->
-  <section style="padding:0 48px 60px;max-width:750px;margin:0 auto;">
-    <div class="hero-terminal">
-      <div class="terminal-bar">
-        <span class="terminal-dot" style="background:#ff5f57;"></span>
-        <span class="terminal-dot" style="background:#febc2e;"></span>
-        <span class="terminal-dot" style="background:#28c840;"></span>
-        <span class="terminal-title">terminal</span>
-      </div>
-      <div class="terminal-body">
-        <div style="color:var(--text-muted);"># see what you're spending</div>
-        <div><span class="line-prompt">$ </span><span class="line-cmd">npx tokenclaw-dev</span></div>
-        <div style="margin-top:6px;"><span class="line-output">  </span><span class="line-tool">Claude Code</span><span class="line-output">  416 sessions  </span><span class="line-cost">~$12,570</span></div>
-        <div><span class="line-output">  </span><span class="line-tool">OpenClaw</span><span class="line-output">      23 sessions  </span><span class="line-cost">~$340</span></div>
-        <div><span class="line-output">  </span><span class="line-tool">Cursor</span><span class="line-output">        89 sessions  </span><span style="color:var(--success);">Pro $20/mo</span></div>
-        <div style="margin-top:14px;color:var(--text-muted);"># set a daily budget per key</div>
-        <div><span class="line-prompt">$ </span><span class="line-cmd">tokenclaw set --key sk-ant-proj-research --budget 10/day</span></div>
-        <div><span style="color:var(--success);">  Set: sk-ant-proj-research &rarr; $10/day</span></div>
-        <div style="margin-top:14px;color:var(--text-muted);"># start the proxy</div>
-        <div><span class="line-prompt">$ </span><span class="line-cmd">tokenclaw proxy</span></div>
-        <div><span class="line-output">  /v1/messages &rarr; Anthropic  /v1/chat/completions &rarr; OpenAI</span></div>
-        <div style="margin-top:6px;"><span class="line-output">  sk-ant-proj-research  in=12K out=3K  </span><span class="line-cost">$0.08</span></div>
-        <div><span class="line-output">  sk-ant-proj-research  in=45K out=8K  </span><span class="line-cost">$0.26</span></div>
-        <div><span style="color:var(--warning);">  WARNING: 84% of budget</span></div>
-        <div><span class="line-output">  sk-ant-proj-research  in=22K out=5K  </span><span class="line-cost">$0.14</span></div>
-        <div><span style="color:var(--danger);">  BLOCKED &mdash; $10.42 / $10.00 day</span></div>
-        <div style="margin-top:6px;color:var(--text-muted);"># "but I was almost done!" &mdash; "you're done."</div>
-      </div>
-    </div>
+  <!-- Dashboard preview -->
+  <section style="padding:20px 48px 60px;text-align:center;">
+    <img src="dashboard-preview.png" alt="tokenclaw dashboard showing spend breakdown per tool" style="max-width:800px;width:100%;border-radius:12px;border:1px solid var(--border);">
+    <p style="color:var(--text-muted);font-size:12px;margin-top:10px;"><code style="font-size:11px;background:var(--bg-hover);padding:2px 6px;border-radius:3px;">tokenclaw dashboard</code> opens this in your browser</p>
   </section>
 
-  <!-- Meme -->
-  <section style="padding:0 48px 40px;text-align:center;">
-    <img src="tokenclaw-meme.jpg" alt="tokenclaw crab meme" style="max-width:450px;width:100%;border-radius:12px;">
-  </section>
-
-  <!-- Quotes -->
-  <section style="padding:20px 48px 60px;max-width:650px;margin:0 auto;">
+  <!-- 2. The problem -->
+  <section style="padding:40px 48px 50px;max-width:650px;margin:0 auto;">
     <div style="font-family:var(--mono);font-size:13px;line-height:2.4;color:var(--text-secondary);">
       <div>"I left an agent running overnight. <span style="color:var(--danger);">$280.</span>"</div>
       <div>"I blew through <span style="color:var(--danger);">$124 in a day</span>. I had no idea."</div>
       <div>"Agent infinite loop. <span style="color:var(--danger);">$4,200</span> in a weekend."</div>
       <div>"I set a spending limit. <span style="color:var(--warning);">It was just an email.</span>"</div>
     </div>
+    <p style="color:var(--text-muted);font-size:13px;margin-top:20px;line-height:1.7;">No per-key limits. No daily budgets. You find out after the money's gone.</p>
   </section>
 
-  <!-- Features: tiny cards -->
-  <section style="padding:0 48px 60px;max-width:800px;margin:0 auto;">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(200px, 1fr));gap:12px;">
-      <div class="card" style="padding:16px;"><div style="font-size:12px;font-weight:600;color:var(--text-primary);">hard caps per key</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">daily / weekly / monthly. over budget = blocked.</div></div>
-      <div class="card" style="padding:16px;"><div style="font-size:12px;font-weight:600;color:var(--text-primary);">anthropic + openai</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">auto-detects provider. one proxy.</div></div>
-      <div class="card" style="padding:16px;"><div style="font-size:12px;font-weight:600;color:var(--text-primary);">slack alerts</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">80% warning. 100% blocked. gets louder.</div></div>
-      <div class="card" style="padding:16px;"><div style="font-size:12px;font-weight:600;color:var(--text-primary);">localhost only</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">no cloud. no telemetry. no account.</div></div>
-      <div class="card" style="padding:16px;"><div style="font-size:12px;font-weight:600;color:var(--text-primary);">scans 9 tools</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">claude code, cursor, openclaw, aider, etc.</div></div>
-      <div class="card" style="padding:16px;"><div style="font-size:12px;font-weight:600;color:var(--text-primary);">dashboard</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">auto-opens in browser after scan.</div></div>
+  <!-- 3. The solution: simple commands -->
+  <section style="padding:20px 48px 60px;max-width:650px;margin:0 auto;">
+    <h2 style="font-size:1.1rem;font-weight:500;color:var(--text-primary);margin-bottom:24px;text-align:center;">set a budget. start the proxy. that's it.</h2>
+
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card" style="padding:16px 20px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">give each API key a daily budget</div>
+        <div style="font-family:var(--mono);font-size:13px;color:var(--text-primary);">
+          <span style="color:var(--success);">$</span> tokenclaw set --key sk-ant-proj-research --budget 10/day
+        </div>
+      </div>
+
+      <div class="card" style="padding:16px 20px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">start the proxy between your agents and the API</div>
+        <div style="font-family:var(--mono);font-size:13px;color:var(--text-primary);">
+          <span style="color:var(--success);">$</span> tokenclaw proxy
+        </div>
+      </div>
+
+      <div class="card" style="padding:16px 20px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">point your agent at it</div>
+        <div style="font-family:var(--mono);font-size:13px;color:var(--text-primary);">
+          <span style="color:var(--success);">$</span> ANTHROPIC_BASE_URL=http://localhost:4040 claude
+        </div>
+      </div>
+
+      <div class="card" style="padding:16px 20px;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">over budget?</div>
+        <div style="font-family:var(--mono);font-size:13px;color:var(--danger);">
+          BLOCKED &mdash; $10.42 / $10.00 day
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">"but I was almost done!" ... "you're done."</div>
+      </div>
     </div>
   </section>
 
-  <!-- Bottom CTA -->
+  <!-- Features: one line each -->
+  <section style="padding:0 48px 60px;max-width:650px;margin:0 auto;">
+    <div style="font-size:13px;color:var(--text-muted);line-height:2.2;">
+      <div><span style="color:var(--text-primary);">Anthropic + OpenAI</span> auto-detected. Also Groq, Together, Fireworks.</div>
+      <div><span style="color:var(--text-primary);">Slack alerts</span> at 80% and 100%. Gets louder if you ignore it.</div>
+      <div><span style="color:var(--text-primary);">Runs on localhost.</span> No cloud. No telemetry. No account.</div>
+      <div><span style="color:var(--text-primary);">Daily, weekly, or monthly</span> budgets per key.</div>
+    </div>
+  </section>
+
+  <!-- 4. CTA -->
   <section class="cta-section">
     <div class="hero-cta">
       <a href="https://github.com/katrinalaszlo/tokenclaw" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:6px;"><svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
