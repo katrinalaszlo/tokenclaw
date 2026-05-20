@@ -48,18 +48,19 @@ Reads session logs stored locally. Only shows API-billed spend — subscription 
 
 ### Connect Slack
 
-1. Create a Slack webhook: go to [api.slack.com/messaging/webhooks](https://api.slack.com/messaging/webhooks), pick a channel, copy the URL.
-2. Add it to tokenclaw:
-
 ```bash
 tokenclaw config slack https://hooks.slack.com/services/T00/B00/xxx
 ```
 
-Or use the guided setup:
+<details>
+<summary>How to get a Slack webhook URL</summary>
 
-```bash
-tokenclaw alert --setup
-```
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From scratch**
+2. Name it "tokenclaw", pick your workspace
+3. **Incoming Webhooks** → toggle on
+4. **Add New Webhook to Workspace** → pick a channel → copy the URL
+
+</details>
 
 ### Set thresholds
 
