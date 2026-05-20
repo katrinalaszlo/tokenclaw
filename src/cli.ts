@@ -809,64 +809,159 @@ program
 
 // ── ALERT ──
 
-const alert = program
+function parseLimit(opts: {
+  daily?: string;
+  weekly?: string;
+  monthly?: string;
+}): { amount: number; period: "day" | "week" | "month" } | null {
+  if (opts.daily) return { amount: Number(opts.daily), period: "day" };
+  if (opts.weekly) return { amount: Number(opts.weekly), period: "week" };
+  if (opts.monthly) return { amount: Number(opts.monthly), period: "month" };
+  return null;
+}
+
+program
   .command("alert")
-  .description("Get notified when spend crosses a threshold");
+  .description("Notify via Slack when spend crosses a dollar amount")
+  .option("--daily <amount>", "Alert at $X/day")
+  .option("--weekly <amount>", "Alert at $X/week")
+  .option("--monthly <amount>", "Alert at $X/month")
+  .option("--key <prefix>", "Per-key alert (requires proxy)")
+  .option("--setup", "Interactive setup (connect Slack)")
+  .option("--watch", "Start hourly monitoring loop")
+  .option("--ack", "Silence alerts for 24h")
+  .action(
+    async (opts: {
+      daily?: string;
+      weekly?: string;
+      monthly?: string;
+      key?: string;
+      setup?: boolean;
+      watch?: boolean;
+      ack?: boolean;
+    }) => {
+      if (opts.setup) {
+        await runInit();
+        return;
+      }
+      if (opts.watch) {
+        await runWatch(false);
+        return;
+      }
+      if (opts.ack) {
+        runAck();
+        return;
+      }
 
-alert
-  .command("setup")
-  .description("Connect Slack + set daily threshold")
-  .action(async () => {
-    await runInit();
-  });
+      const limit = parseLimit(opts);
+      if (!limit) {
+        const config = loadConfig();
+        console.log(chalk.bold("Current alert thresholds:\n"));
+        console.log(`  Daily:  ${fmtUSD(config.thresholds.daily)}`);
+        console.log(`  Weekly: ${fmtUSD(config.thresholds.weekly)}`);
+        console.log(chalk.dim(`\nSet:   tokenclaw alert --daily 50`));
+        console.log(chalk.dim(`Slack: tokenclaw alert --setup`));
+        console.log(chalk.dim(`Start: tokenclaw alert --watch`));
+        return;
+      }
 
-alert
-  .command("set")
-  .description("Set alert thresholds")
-  .option("--daily <amount>", "Daily spend threshold (USD)")
-  .option("--weekly <amount>", "Weekly spend threshold (USD)")
-  .action((opts: { daily?: string; weekly?: string }) => {
-    const config = loadConfig();
-    if (opts.daily) config.thresholds.daily = Number(opts.daily);
-    if (opts.weekly) config.thresholds.weekly = Number(opts.weekly);
-    if (!opts.daily && !opts.weekly) {
-      console.log(`  Daily:  ${chalk.cyan(fmtUSD(config.thresholds.daily))}`);
-      console.log(`  Weekly: ${chalk.cyan(fmtUSD(config.thresholds.weekly))}`);
+      if (opts.key) {
+        console.log(
+          chalk.dim(
+            "Per-key alerts require the proxy. Make sure it's running: tokenclaw proxy\n",
+          ),
+        );
+        const config = loadConfig();
+        const rules: Array<{ at: number; action: "alert" | "block" }> = [
+          { at: 100, action: "alert" },
+        ];
+        config.key_budgets[opts.key] = {
+          budget: limit.amount,
+          period: limit.period,
+          rules,
+        };
+        saveConfig(config);
+        console.log(
+          chalk.green(
+            `Alert: ${opts.key} → Slack at $${limit.amount}/${limit.period}`,
+          ),
+        );
+      } else {
+        const config = loadConfig();
+        if (limit.period === "day") {
+          config.thresholds.daily = limit.amount;
+          config.thresholds.weekly = limit.amount * 5;
+        } else if (limit.period === "week") {
+          config.thresholds.weekly = limit.amount;
+        }
+        saveConfig(config);
+        console.log(
+          chalk.green(
+            `Alert: Slack at $${limit.amount}/${limit.period} total spend`,
+          ),
+        );
+      }
+    },
+  );
+
+// ── CAP ──
+
+program
+  .command("cap")
+  .description(
+    "Block API requests when spend crosses a dollar amount (requires proxy)",
+  )
+  .requiredOption("--key <prefix>", "API key prefix (e.g. sk-ant-research)")
+  .option("--daily <amount>", "Block at $X/day")
+  .option("--weekly <amount>", "Block at $X/week")
+  .option("--monthly <amount>", "Block at $X/month")
+  .action(
+    (opts: {
+      key: string;
+      daily?: string;
+      weekly?: string;
+      monthly?: string;
+    }) => {
+      const limit = parseLimit(opts);
+      if (!limit) {
+        console.error(
+          chalk.red("Specify a limit: --daily, --weekly, or --monthly"),
+        );
+        process.exit(1);
+        return;
+      }
+
+      const config = loadConfig();
+      const rules: Array<{ at: number; action: "alert" | "block" }> = [
+        { at: 80, action: "alert" },
+        { at: 100, action: "block" },
+      ];
+      config.key_budgets[opts.key] = {
+        budget: limit.amount,
+        period: limit.period,
+        rules,
+      };
+      saveConfig(config);
+
       console.log(
-        chalk.dim(`\nUse --daily <amount> or --weekly <amount> to change.`),
+        chalk.green(
+          `Cap: ${opts.key} → block at $${limit.amount}/${limit.period}`,
+        ),
       );
-      return;
-    }
-    saveConfig(config);
-    console.log(chalk.green("Alert thresholds updated:"));
-    console.log(`  Daily:  ${chalk.cyan(fmtUSD(config.thresholds.daily))}`);
-    console.log(`  Weekly: ${chalk.cyan(fmtUSD(config.thresholds.weekly))}`);
-  });
+      console.log(chalk.dim(`  warn at ${fmtUSD(limit.amount * 0.8)} (80%)`));
+      console.log(
+        chalk.dim(`\nMake sure the proxy is running: tokenclaw proxy`),
+      );
+    },
+  );
 
-alert
-  .command("watch")
-  .description("Monitor hourly, alert on threshold")
-  .option("--once", "Run once and exit")
-  .action(async (opts: { once?: boolean }) => {
-    await runWatch(!!opts.once);
-  });
+// ── PROXY ──
 
-alert
-  .command("ack [rule-name]")
-  .description("Silence alerts for 24h")
-  .action((ruleName?: string) => {
-    runAck(ruleName);
-  });
-
-// ── CONTROL (requires proxy) ──
-
-const control = program
-  .command("control")
-  .description("Block requests when a key goes over budget (requires proxy)");
-
-control
+program
   .command("proxy")
-  .description("Start the enforcement proxy")
+  .description(
+    "Start the enforcement proxy (required for --key alerts and caps)",
+  )
   .option("--port <port>", "Port to listen on", "4040")
   .action((opts: { port: string }) => {
     const port = parseInt(opts.port, 10);
@@ -877,78 +972,23 @@ control
     startProxy(port);
   });
 
-control
-  .command("set")
-  .description("Set a per-key spend limit")
-  .requiredOption("--key <prefix>", "API key prefix (e.g. sk-ant-research)")
-  .option("--daily <amount>", "Daily limit in USD")
-  .option("--weekly <amount>", "Weekly limit in USD")
-  .option("--monthly <amount>", "Monthly limit in USD")
-  .option("--warn <pct>", "Alert at N% of limit (default: 80)")
-  .option("--block <pct>", "Block requests at N% of limit")
-  .action(
-    (opts: {
-      key: string;
-      daily?: string;
-      weekly?: string;
-      monthly?: string;
-      warn?: string;
-      block?: string;
-    }) => {
-      let budget: number;
-      let period: "day" | "week" | "month";
-      if (opts.daily) {
-        budget = Number(opts.daily);
-        period = "day";
-      } else if (opts.weekly) {
-        budget = Number(opts.weekly);
-        period = "week";
-      } else if (opts.monthly) {
-        budget = Number(opts.monthly);
-        period = "month";
-      } else {
-        console.error(
-          chalk.red("Specify a limit: --daily, --weekly, or --monthly"),
-        );
-        process.exit(1);
-        return;
-      }
+// ── KEYS ──
 
-      const rules: Array<{ at: number; action: "alert" | "block" }> = [];
-      const warnAt = opts.warn ? parseInt(opts.warn, 10) : 80;
-      rules.push({ at: warnAt, action: "alert" });
-      if (opts.block) {
-        rules.push({ at: parseInt(opts.block, 10), action: "block" });
-      }
-      rules.sort((a, b) => a.at - b.at);
-
-      const config = loadConfig();
-      config.key_budgets[opts.key] = { budget, period, rules };
-      saveConfig(config);
-
-      console.log(chalk.green(`${opts.key} → $${budget}/${period}`));
-      for (const r of rules) {
-        const label =
-          r.action === "block"
-            ? chalk.red(`  block at ${r.at}%`)
-            : chalk.yellow(`  warn at ${r.at}%`);
-        console.log(label);
-      }
-    },
-  );
-
-control
+program
   .command("keys")
-  .description("Show all keys and their limits")
+  .description("Show all per-key alerts and caps")
   .action(() => {
     initDB();
     const config = loadConfig();
     const budgets = config.key_budgets;
 
     if (Object.keys(budgets).length === 0) {
-      console.log(chalk.dim("No keys configured."));
+      console.log(chalk.dim("No per-key rules configured."));
       console.log(
-        chalk.dim("Use: tokenclaw control set --key <prefix> --daily <amount>"),
+        chalk.dim("Use: tokenclaw alert --key <prefix> --daily <amount>"),
+      );
+      console.log(
+        chalk.dim("  or: tokenclaw cap --key <prefix> --daily <amount>"),
       );
       return;
     }
@@ -958,25 +998,17 @@ control
       const spent = getSpendByKeyPrefix(prefix, since);
       const pct = b.budget > 0 ? Math.round((spent / b.budget) * 100) : 0;
       const hasBlock = b.rules.some((r) => r.action === "block");
+      const type = hasBlock ? chalk.red("cap") : chalk.yellow("alert");
       const status =
         pct >= 100 && hasBlock
           ? chalk.red("BLOCKED")
           : pct >= 100
             ? chalk.yellow("OVER")
-            : pct >= 80
-              ? chalk.yellow(`${pct}%`)
-              : chalk.green(`${pct}%`);
+            : chalk.green(`${pct}%`);
 
       console.log(
-        `  ${chalk.white(prefix.padEnd(25))} ${fmtUSD(spent)} / ${fmtUSD(b.budget)} ${b.period}  (${status})`,
+        `  ${type}  ${chalk.white(prefix.padEnd(25))} ${fmtUSD(spent)} / ${fmtUSD(b.budget)} ${b.period}  (${status})`,
       );
-      for (const r of b.rules) {
-        const label =
-          r.action === "block"
-            ? chalk.red(`  block at ${r.at}%`)
-            : chalk.dim(`  warn at ${r.at}%`);
-        console.log(label);
-      }
     }
   });
 
