@@ -407,16 +407,18 @@ async function runWatch(once: boolean): Promise<void> {
 function runAck(ruleName?: string): void {
   const config = loadConfig();
 
+  const unsileceAt = new Date(
+    Date.now() + config.acknowledge_ttl * 60 * 60 * 1000,
+  );
+  const unsileceStr = unsileceAt.toLocaleString();
+
   if (ruleName) {
     acknowledgeAlert(ruleName, config.acknowledge_ttl);
-    console.log(
-      chalk.green(`Acknowledged: ${ruleName}`) +
-        chalk.dim(` (silenced for ${config.acknowledge_ttl}h)`),
-    );
+    console.log(chalk.green(`Acknowledged: ${ruleName}`));
+    console.log(chalk.dim(`  Silenced until ${unsileceStr}`));
     return;
   }
 
-  // Ack all active alerts
   const rules = buildRules(config);
   let count = 0;
   for (const rule of rules) {
@@ -429,10 +431,8 @@ function runAck(ruleName?: string): void {
   if (count === 0) {
     console.log(chalk.dim("No active alerts to acknowledge."));
   } else {
-    console.log(
-      chalk.green(`Acknowledged ${count} alert(s).`) +
-        chalk.dim(` Silenced for ${config.acknowledge_ttl}h.`),
-    );
+    console.log(chalk.green(`Acknowledged ${count} alert(s).`));
+    console.log(chalk.dim(`  Silenced until ${unsileceStr}`));
   }
 }
 

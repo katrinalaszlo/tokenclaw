@@ -1,6 +1,6 @@
 {
   "name": "tokenclaw-dev",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "Per-key budget caps for AI agents. Local proxy enforces hard spend limits on API keys. Scans your tools, tracks costs, blocks when over budget.",
   "type": "module",
   "keywords": [
