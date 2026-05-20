@@ -35,57 +35,37 @@ npm install -g tokenclaw-dev
 ## View — see your API spend
 
 ```bash
-tokenclaw view models             # cost by model
-tokenclaw view projects           # cost by project
-tokenclaw view trends             # daily spend over time
-tokenclaw view usage              # token counts
-tokenclaw view efficiency         # cache rates, cost per session
+tokenclaw view
 ```
 
-Reads session logs stored locally by AI tools, counts tokens, estimates cost at API rates. Only shows API-billed spend (OpenClaw, custom API keys, etc.) — subscription tools like Claude Code Pro or Cursor Pro are excluded since they have flat monthly costs. Nothing leaves your machine.
+Shows all spend data in one shot: cost by model, cost by project, daily trends, token usage, efficiency, and subscription value. If the proxy is running, also shows spend by API key.
+
+Reads session logs stored locally. Only shows API-billed spend — subscription tools (Claude Code Pro, Cursor Pro) are shown separately with their value multiplier. Nothing leaves your machine.
 
 ---
 
-## Alert — get notified when API spend crosses a threshold
+## Alert — get notified when spend crosses a dollar amount
 
-Connect Slack:
-
-```bash
-tokenclaw alert setup
-```
-
-Or set it directly:
+No proxy needed for total spend alerts. Per-key alerts require the proxy.
 
 ```bash
-tokenclaw config slack https://hooks.slack.com/services/T00/B00/xxx
+tokenclaw alert --daily 50                  # Slack at $50/day total
+tokenclaw alert --weekly 250                # Slack at $250/week total
+tokenclaw alert --key sk-abc --daily 10     # Slack at $10/day on this key (proxy)
+tokenclaw alert --setup                     # connect Slack
+tokenclaw alert --watch                     # start hourly monitoring (required for alerts to fire)
+tokenclaw alert --ack                       # silence alerts for 24h
+tokenclaw alert                             # show current thresholds
 ```
-
-Set thresholds:
-
-```bash
-tokenclaw alert set --daily 50    # alert at $50/day
-tokenclaw alert set --weekly 250  # alert at $250/week
-```
-
-Start monitoring:
-
-```bash
-tokenclaw alert watch             # checks every hour, sends Slack when threshold crossed
-tokenclaw alert ack               # silence alerts for 24h
-```
-
-`watch` must be running for alerts to fire. Run it in a background terminal or add to cron.
 
 ---
 
-## Control — block API requests when a key goes over budget
+## Cap — block requests when spend crosses a dollar amount
 
-Requires the proxy. The proxy sits between your agents and the API, tracks spend per key, and blocks requests when limits are hit.
-
-Start the proxy:
+Requires the proxy. Start the proxy first, then set caps.
 
 ```bash
-tokenclaw control proxy
+tokenclaw proxy                             # start proxy
 ```
 
 Point your agent at it:
@@ -95,20 +75,18 @@ ANTHROPIC_BASE_URL=http://localhost:4040 claude
 OPENAI_BASE_URL=http://localhost:4040 your-agent
 ```
 
-Set a per-key limit:
+Set a cap:
 
 ```bash
-tokenclaw control set --key sk-ant-research --daily 10
-tokenclaw control set --key sk-ant-research --daily 10 --warn 80 --block 100
+tokenclaw cap --key sk-ant-research --daily 10      # block at $10/day
+tokenclaw cap --key sk-abc --weekly 500              # block at $500/week
+tokenclaw cap --key sk-abc --monthly 2000            # block at $2000/month
 ```
 
-- `--warn 80` — Slack alert at 80% ($8)
-- `--block 100` — proxy returns 429 at 100% ($10)
-
-Nothing is blocked unless you add `--block`. Default is warn at 80%.
+Auto-warns at 80% of the cap. At 100%, the proxy returns 429 and the request is stopped.
 
 ```bash
-tokenclaw control keys            # show all keys and their limits
+tokenclaw keys                              # show all alerts and caps on keys
 ```
 
 <p align="center">
@@ -122,9 +100,9 @@ Auto-detects provider: `/v1/messages` → Anthropic, `/v1/chat/completions` → 
 ## Config
 
 ```bash
-tokenclaw config                  # show current config
-tokenclaw config slack <url>      # set Slack webhook
-tokenclaw config reset            # reset to defaults
+tokenclaw config                            # show current config
+tokenclaw config slack <url>                # set Slack webhook
+tokenclaw config reset                      # reset to defaults
 ```
 
 ## Uninstall

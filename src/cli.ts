@@ -37,6 +37,7 @@ import {
   getCostSnapshots,
   getKeyBreakdown,
   getSpendByKeyPrefix,
+  hasProxyData,
 } from "./db.js";
 import { startProxy } from "./proxy/server.js";
 import { getBudgetWindowStart } from "./proxy/parse.js";
@@ -731,6 +732,25 @@ function listSubscriptions(
   }
 }
 
+function listKeySpend(): void {
+  const since = getBudgetWindowStart("day");
+  const breakdown = getKeyBreakdown(since);
+
+  if (breakdown.length === 0) return;
+
+  console.log(chalk.bold("Spend by API key") + chalk.dim("  (proxy data)\n"));
+  const maxCost = breakdown[0]?.total_cost || 1;
+
+  for (const row of breakdown.slice(0, 10)) {
+    const barLen = Math.max(1, Math.round((row.total_cost / maxCost) * 20));
+    const bar =
+      chalk.cyan("█".repeat(barLen)) + chalk.dim("░".repeat(20 - barLen));
+    console.log(
+      `  ${chalk.white(row.api_key_prefix.padEnd(25))} ${chalk.cyan(fmtUSD(row.total_cost).padStart(10))}  ${bar}  ${chalk.dim(row.request_count + " requests")}`,
+    );
+  }
+}
+
 function runConfig(): void {
   const config = loadConfig();
   const configPath = getConfigPath();
@@ -805,6 +825,11 @@ program
     }
 
     listSubscriptions(found);
+
+    if (hasProxyData()) {
+      console.log();
+      listKeySpend();
+    }
   });
 
 // ── ALERT ──
@@ -976,7 +1001,7 @@ program
 
 program
   .command("keys")
-  .description("Show all per-key alerts and caps")
+  .description("Show alerts and caps set on individual API keys")
   .action(() => {
     initDB();
     const config = loadConfig();
