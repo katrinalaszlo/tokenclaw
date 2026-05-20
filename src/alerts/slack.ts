@@ -51,11 +51,11 @@ function formatNormalAlert(alert: SlackAlertPayload): string {
   const frequencyLabel = FREQUENCY_LABELS[alert.frequency] ?? alert.frequency;
 
   const lines = [
-    `[acc] ${alert.ruleName} — $${alert.amount.toFixed(2)} (threshold: $${alert.threshold.toFixed(2)})${spikeTag}`,
+    `[tokenclaw] ${alert.ruleName} — $${alert.amount.toFixed(2)} (threshold: $${alert.threshold.toFixed(2)})${spikeTag}`,
     `Top tools:\n${toolLines}`,
     `Escalation: Level ${alert.level} (alerting ${frequencyLabel} until acknowledged)`,
     "",
-    `Reply 'ok' to acknowledge or run \`acc ack ${alert.ruleId.slice(0, 8)}\``,
+    `Reply 'ok' to acknowledge or run \`tokenclaw alert --ack\``,
   ];
 
   return lines.join("\n");
@@ -72,11 +72,11 @@ function formatEscalatedAlert(alert: SlackAlertPayload): string {
 
   const lines = [
     `UNACKNOWLEDGED ALERT — ESCALATED TO LEVEL ${alert.level}`,
-    `[acc] ${alert.ruleName} — $${alert.amount.toFixed(2)} OVER THRESHOLD ($${alert.threshold.toFixed(2)})${spikeTag}`,
+    `[tokenclaw] ${alert.ruleName} — $${alert.amount.toFixed(2)} OVER THRESHOLD ($${alert.threshold.toFixed(2)})${spikeTag}`,
     `Top tools:\n${toolLines}`,
     `NOW ALERTING ${frequencyLabel.toUpperCase()} UNTIL ACKNOWLEDGED`,
     "",
-    `Reply 'ok' to acknowledge or run \`acc ack ${alert.ruleId.slice(0, 8)}\``,
+    `Reply 'ok' to acknowledge or run \`tokenclaw alert --ack\``,
   ];
 
   return lines.join("\n");

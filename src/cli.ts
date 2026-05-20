@@ -797,7 +797,7 @@ const program = new Command();
 program
   .name("tokenclaw")
   .description("See, alert, and control AI agent spend")
-  .version("0.8.0")
+  .version("2.0.0")
   .option("--no-color", "Disable colored output")
   .option("--config <path>", "Custom config file path")
   .hook("preAction", (_thisCommand, _actionCommand) => {
