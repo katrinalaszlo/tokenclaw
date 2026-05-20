@@ -260,14 +260,23 @@ async function runFirstRun(): Promise<void> {
 
   const rl = createInterface({ input: stdin, output: stdout });
 
-  console.log(chalk.bold("\ntokenclaw setup\n"));
+  console.log(chalk.bold("\nConnect alerts\n"));
+  console.log(chalk.dim("Where should tokenclaw send alerts?\n"));
 
+  const slackWebhook = await rl.question("Slack webhook URL: ");
+
+  if (!slackWebhook.trim()) {
+    console.log(
+      chalk.yellow("\nNo webhook set. Alerts won't be sent anywhere."),
+    );
+    console.log(chalk.dim("Set one later: tokenclaw config slack <url>"));
+  }
+
+  console.log();
   const dailyStr = await rl.question(
     `Daily spend alert threshold (USD) [${DEFAULT_CONFIG.thresholds.daily}]: `,
   );
   const daily = dailyStr ? Number(dailyStr) : DEFAULT_CONFIG.thresholds.daily;
-
-  const slackWebhook = await rl.question("Slack webhook URL (optional): ");
 
   const config: AccConfig = {
     ...DEFAULT_CONFIG,
