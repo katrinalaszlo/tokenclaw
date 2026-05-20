@@ -59,9 +59,9 @@ tokenclaw config slack https://hooks.slack.com/services/T00/B00/xxx
 2. App name: "tokenclaw", pick your workspace → **Create App**
 3. Left sidebar → **Incoming Webhooks**
 4. Toggle **Activate Incoming Webhooks** to On
-5. Scroll down → **Add New Webhook to Workspace**
+5. Scroll down → click **Add New Webhook to Workspace**
 6. Pick a channel → **Allow**
-7. Copy the URL (starts with `https://hooks.slack.com/services/...`)
+7. Back on the webhooks page, copy the URL that was just created (starts with `https://hooks.slack.com/services/...`)
 
 </details>
 
