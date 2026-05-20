@@ -999,9 +999,16 @@ program
           console.log(chalk.dim("\nNo recent alerts."));
         }
 
-        console.log(chalk.dim(`\nSet:   tokenclaw alert --daily 50`));
-        console.log(chalk.dim(`Slack: tokenclaw alert --setup`));
-        console.log(chalk.dim(`Start: tokenclaw alert --watch`));
+        if (config.thresholds.daily > 0 || config.thresholds.weekly > 0) {
+          console.log(
+            chalk.yellow(
+              `\n  Alerts won't fire unless watch is running: tokenclaw alert --watch`,
+            ),
+          );
+        } else {
+          console.log(chalk.dim(`\nSet:   tokenclaw alert --daily 50`));
+          console.log(chalk.dim(`Slack: tokenclaw alert --setup`));
+        }
         return;
       }
 
