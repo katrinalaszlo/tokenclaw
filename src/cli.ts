@@ -856,6 +856,7 @@ program
   .option("--watch", "Start hourly monitoring loop")
   .option("--ack", "Silence alerts for 24h")
   .option("--clear", "Remove alert (use with --key for per-key)")
+  .option("--log", "Show alert history")
   .action(
     async (opts: {
       daily?: string;
@@ -866,7 +867,37 @@ program
       watch?: boolean;
       ack?: boolean;
       clear?: boolean;
+      log?: boolean;
     }) => {
+      if (opts.log) {
+        initDB();
+        const recent = getRecentAlerts(168);
+        const fired = recent.filter(
+          (a) => a.action === "fired" || a.action === "escalated",
+        );
+        if (fired.length === 0) {
+          console.log(chalk.dim("No alerts in the last 7 days."));
+          return;
+        }
+        console.log(chalk.bold("Alert log (last 7 days)\n"));
+        for (const a of fired) {
+          const level =
+            a.escalation_level > 0
+              ? chalk.yellow(` L${a.escalation_level}`)
+              : "";
+          let amount = "";
+          if (a.details_json) {
+            try {
+              const d = JSON.parse(a.details_json);
+              amount = ` ${fmtUSD(Number(d.amount))}`;
+            } catch {}
+          }
+          console.log(
+            `  ${chalk.dim(a.created_at)}  ${a.rule_name}${level}${amount}`,
+          );
+        }
+        return;
+      }
       if (opts.clear) {
         const config = loadConfig();
         if (opts.key) {
@@ -995,6 +1026,7 @@ program
   .option("--weekly <amount>", "Block at $X/week")
   .option("--monthly <amount>", "Block at $X/month")
   .option("--clear", "Remove cap on a key (use with --key)")
+  .option("--log", "Show cap/block history")
   .action(
     (opts: {
       key?: string;
@@ -1002,7 +1034,35 @@ program
       weekly?: string;
       monthly?: string;
       clear?: boolean;
+      log?: boolean;
     }) => {
+      if (opts.log) {
+        initDB();
+        const recent = getRecentAlerts(168);
+        const blocks = recent.filter(
+          (a) =>
+            a.action === "blocked" ||
+            (a.details_json && a.details_json.includes("block")),
+        );
+        if (blocks.length === 0) {
+          console.log(chalk.dim("No blocks in the last 7 days."));
+          return;
+        }
+        console.log(chalk.bold("Cap log (last 7 days)\n"));
+        for (const a of blocks) {
+          let amount = "";
+          if (a.details_json) {
+            try {
+              const d = JSON.parse(a.details_json);
+              amount = ` ${fmtUSD(Number(d.amount))}`;
+            } catch {}
+          }
+          console.log(
+            `  ${chalk.dim(a.created_at)}  ${chalk.red("blocked")}  ${a.rule_name}${amount}`,
+          );
+        }
+        return;
+      }
       if (opts.clear) {
         if (!opts.key) {
           console.error(chalk.red("--key is required with --clear."));

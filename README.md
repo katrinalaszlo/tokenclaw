@@ -81,6 +81,12 @@ tokenclaw alert --ack                       # silence alerts for 24h
 tokenclaw alert                             # show current thresholds
 ```
 
+### Alert log
+
+```bash
+tokenclaw alert --log                       # when alerts fired, what triggered them
+```
+
 ### Clear alerts
 
 ```bash
@@ -121,6 +127,12 @@ Auto-warns at 80% of the cap. At 100%, the proxy returns 429 and the request is 
 
 ```bash
 tokenclaw cap                               # show all active caps
+```
+
+### Cap log
+
+```bash
+tokenclaw cap --log                         # when caps blocked requests, which keys
 ```
 
 ### Clear caps
