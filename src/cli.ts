@@ -40,6 +40,12 @@ import {
   hasProxyData,
 } from "./db.js";
 import { startProxy } from "./proxy/server.js";
+import {
+  installMonitoring,
+  uninstallMonitoring,
+  isMonitoringInstalled,
+  isMac,
+} from "./launchd.js";
 import { getBudgetWindowStart } from "./proxy/parse.js";
 
 // ── Helpers ──
@@ -883,9 +889,10 @@ program
   .option("--monthly <amount>", "Alert at $X/month")
   .option("--key <prefix>", "Per-key alert (requires proxy)")
   .option("--setup", "Interactive setup (connect Slack)")
-  .option("--watch", "Start hourly monitoring loop")
+  .option("--watch", "Start continuous monitoring in foreground")
+  .option("--check", "Run one alert check and exit (used by launchd)")
   .option("--ack", "Silence alerts for 24h")
-  .option("--clear", "Remove alert (use with --key for per-key)")
+  .option("--clear", "Remove alert and stop monitoring")
   .option("--log", "Show alert history")
   .action(
     async (opts: {
@@ -895,10 +902,15 @@ program
       key?: string;
       setup?: boolean;
       watch?: boolean;
+      check?: boolean;
       ack?: boolean;
       clear?: boolean;
       log?: boolean;
     }) => {
+      if (opts.check) {
+        await runWatch(true);
+        return;
+      }
       if (opts.log) {
         initDB();
         const recent = getRecentAlerts(168);
@@ -943,7 +955,11 @@ program
           config.thresholds.daily = 0;
           config.thresholds.weekly = 0;
           saveConfig(config);
+          const result = uninstallMonitoring();
           console.log(chalk.green("Total spend alerts cleared."));
+          if (result.message !== "No monitoring installed.") {
+            console.log(chalk.dim(result.message));
+          }
         }
         return;
       }
@@ -1000,11 +1016,18 @@ program
         }
 
         if (config.thresholds.daily > 0 || config.thresholds.weekly > 0) {
-          console.log(
-            chalk.yellow(
-              `\n  Alerts won't fire unless watch is running: tokenclaw alert --watch`,
-            ),
-          );
+          if (isMonitoringInstalled()) {
+            console.log(
+              chalk.green("\n  Monitoring active — checking every hour."),
+            );
+          } else {
+            console.log(
+              chalk.yellow(
+                "\n  Monitoring not installed. Set a threshold to auto-install:",
+              ),
+            );
+            console.log(chalk.dim("  tokenclaw alert --daily 50"));
+          }
         } else {
           console.log(chalk.dim(`\nSet:   tokenclaw alert --daily 50`));
           console.log(chalk.dim(`Slack: tokenclaw alert --setup`));
@@ -1046,6 +1069,13 @@ program
           chalk.green(
             `Alert: Slack at $${limit.amount}/${limit.period} total spend`,
           ),
+        );
+
+        const result = installMonitoring();
+        console.log(
+          result.ok
+            ? chalk.green(result.message)
+            : chalk.yellow(result.message),
         );
       }
     },
