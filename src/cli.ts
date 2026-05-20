@@ -131,20 +131,26 @@ function dbAlertsToHistory(
   });
 }
 
-/** Convert scan results to the CostSnapshot shape the engine expects.
- *  Only includes API-billed tools — subscription tools have flat monthly
- *  costs that don't map to daily/weekly spend thresholds. */
-function scanToEngineSnapshots(
+function scanToEngineSnapshotsForPeriod(
   found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
+  period: "daily" | "weekly",
 ): EngineCostSnapshot[] {
+  const today = todayISO();
+  const cutoff = period === "daily" ? today : weekAgoISO();
+
   return found
     .filter((t) => t.billingType === "api")
-    .map((t) => ({
-      provider: "local",
-      tool: t.tool,
-      date: todayISO(),
-      amount_usd: t.totalCost,
-    }));
+    .map((t) => {
+      const periodCost = t.dailyCosts
+        .filter((d) => d.date >= cutoff)
+        .reduce((sum, d) => sum + d.cost, 0);
+      return {
+        provider: "local",
+        tool: t.tool,
+        date: today,
+        amount_usd: periodCost,
+      };
+    });
 }
 
 /** Save scan results to DB as cost snapshots. */
@@ -339,11 +345,17 @@ async function runWatch(once: boolean): Promise<void> {
     const { found } = await scanLocalTools();
     persistScanToDB(found);
 
-    const snapshots = scanToEngineSnapshots(found);
-    const rules = buildRules(config);
-    const history = dbAlertsToHistory(getRecentAlerts(168)); // 7 days
+    const history = dbAlertsToHistory(getRecentAlerts(168));
     const ackState = getAckState();
-    const actions = evaluateAlerts(snapshots, rules, history, ackState);
+    const allRules = buildRules(config);
+
+    const actions: ReturnType<typeof evaluateAlerts> = [];
+    for (const rule of allRules) {
+      const period = rule.period === "weekly" ? "weekly" : "daily";
+      const snapshots = scanToEngineSnapshotsForPeriod(found, period);
+      const ruleActions = evaluateAlerts(snapshots, [rule], history, ackState);
+      actions.push(...ruleActions);
+    }
 
     if (actions.length === 0) {
       console.log(chalk.green("No alerts."));
