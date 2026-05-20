@@ -81,14 +81,23 @@ tokenclaw alert --ack                       # silence alerts for 24h
 tokenclaw alert                             # show current thresholds
 ```
 
+### Clear alerts
+
+```bash
+tokenclaw alert --clear                     # remove total spend alerts
+tokenclaw alert --clear --key sk-abc        # remove alert on a specific key
+```
+
 ---
 
 ## Cap — block requests when spend crosses a dollar amount
 
-Requires the proxy. Start the proxy first, then set caps.
+Requires the proxy. Per-key only.
+
+### Start the proxy
 
 ```bash
-tokenclaw proxy                             # start proxy
+tokenclaw proxy
 ```
 
 Point your agent at it:
@@ -98,7 +107,7 @@ ANTHROPIC_BASE_URL=http://localhost:4040 claude
 OPENAI_BASE_URL=http://localhost:4040 your-agent
 ```
 
-Set a cap:
+### Set a cap
 
 ```bash
 tokenclaw cap --key sk-ant-research --daily 10      # block at $10/day
@@ -108,8 +117,16 @@ tokenclaw cap --key sk-abc --monthly 2000            # block at $2000/month
 
 Auto-warns at 80% of the cap. At 100%, the proxy returns 429 and the request is stopped.
 
+### View caps
+
 ```bash
-tokenclaw keys                              # show all alerts and caps on keys
+tokenclaw cap                               # show all active caps
+```
+
+### Clear caps
+
+```bash
+tokenclaw cap --clear --key sk-abc          # remove cap on a key
 ```
 
 <p align="center">

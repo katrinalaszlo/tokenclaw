@@ -855,6 +855,7 @@ program
   .option("--setup", "Interactive setup (connect Slack)")
   .option("--watch", "Start hourly monitoring loop")
   .option("--ack", "Silence alerts for 24h")
+  .option("--clear", "Remove alert (use with --key for per-key)")
   .action(
     async (opts: {
       daily?: string;
@@ -864,7 +865,27 @@ program
       setup?: boolean;
       watch?: boolean;
       ack?: boolean;
+      clear?: boolean;
     }) => {
+      if (opts.clear) {
+        const config = loadConfig();
+        if (opts.key) {
+          const existing = config.key_budgets[opts.key];
+          if (existing && !existing.rules.some((r) => r.action === "block")) {
+            delete config.key_budgets[opts.key];
+            saveConfig(config);
+            console.log(chalk.green(`Alert removed for ${opts.key}`));
+          } else {
+            console.log(chalk.dim(`No alert found for ${opts.key}`));
+          }
+        } else {
+          config.thresholds.daily = 0;
+          config.thresholds.weekly = 0;
+          saveConfig(config);
+          console.log(chalk.green("Total spend alerts cleared."));
+        }
+        return;
+      }
       if (opts.setup) {
         await runInit();
         return;
@@ -880,10 +901,43 @@ program
 
       const limit = parseLimit(opts);
       if (!limit) {
+        initDB();
         const config = loadConfig();
-        console.log(chalk.bold("Current alert thresholds:\n"));
+        console.log(chalk.bold("Total spend alerts:\n"));
         console.log(`  Daily:  ${fmtUSD(config.thresholds.daily)}`);
         console.log(`  Weekly: ${fmtUSD(config.thresholds.weekly)}`);
+
+        const keyAlerts = Object.entries(config.key_budgets).filter(
+          ([, b]) => !b.rules.some((r) => r.action === "block"),
+        );
+        if (keyAlerts.length > 0) {
+          console.log(chalk.bold("\nPer-key alerts:\n"));
+          for (const [prefix, b] of keyAlerts) {
+            const since = getBudgetWindowStart(b.period);
+            const spent = getSpendByKeyPrefix(prefix, since);
+            console.log(
+              `  ${chalk.white(prefix.padEnd(25))} ${fmtUSD(spent)} / ${fmtUSD(b.budget)} ${b.period}`,
+            );
+          }
+        }
+
+        const recent = getRecentAlerts(168);
+        const fired = recent.filter(
+          (a) => a.action === "fired" || a.action === "escalated",
+        );
+        if (fired.length > 0) {
+          console.log(chalk.bold("\nRecent alerts:\n"));
+          for (const a of fired.slice(0, 10)) {
+            const level =
+              a.escalation_level > 0
+                ? chalk.yellow(` [L${a.escalation_level}]`)
+                : "";
+            console.log(`  ${chalk.dim(a.created_at)}  ${a.rule_name}${level}`);
+          }
+        } else {
+          console.log(chalk.dim("\nNo recent alerts."));
+        }
+
         console.log(chalk.dim(`\nSet:   tokenclaw alert --daily 50`));
         console.log(chalk.dim(`Slack: tokenclaw alert --setup`));
         console.log(chalk.dim(`Start: tokenclaw alert --watch`));
@@ -936,21 +990,75 @@ program
   .description(
     "Block API requests when spend crosses a dollar amount (requires proxy)",
   )
-  .requiredOption("--key <prefix>", "API key prefix (e.g. sk-ant-research)")
+  .option("--key <prefix>", "API key prefix (e.g. sk-ant-research)")
   .option("--daily <amount>", "Block at $X/day")
   .option("--weekly <amount>", "Block at $X/week")
   .option("--monthly <amount>", "Block at $X/month")
+  .option("--clear", "Remove cap on a key (use with --key)")
   .action(
     (opts: {
-      key: string;
+      key?: string;
       daily?: string;
       weekly?: string;
       monthly?: string;
+      clear?: boolean;
     }) => {
+      if (opts.clear) {
+        if (!opts.key) {
+          console.error(chalk.red("--key is required with --clear."));
+          process.exit(1);
+          return;
+        }
+        const config = loadConfig();
+        if (config.key_budgets[opts.key]) {
+          delete config.key_budgets[opts.key];
+          saveConfig(config);
+          console.log(chalk.green(`Cap removed for ${opts.key}`));
+        } else {
+          console.log(chalk.dim(`No cap found for ${opts.key}`));
+        }
+        return;
+      }
+
       const limit = parseLimit(opts);
+
       if (!limit) {
-        console.error(
-          chalk.red("Specify a limit: --daily, --weekly, or --monthly"),
+        initDB();
+        const config = loadConfig();
+        const caps = Object.entries(config.key_budgets).filter(([, b]) =>
+          b.rules.some((r) => r.action === "block"),
+        );
+
+        if (caps.length === 0) {
+          console.log(chalk.dim("No caps configured."));
+          console.log(
+            chalk.dim("Use: tokenclaw cap --key <prefix> --daily <amount>"),
+          );
+          return;
+        }
+
+        console.log(chalk.bold("Active caps:\n"));
+        for (const [prefix, b] of caps) {
+          const since = getBudgetWindowStart(b.period);
+          const spent = getSpendByKeyPrefix(prefix, since);
+          const pct = b.budget > 0 ? Math.round((spent / b.budget) * 100) : 0;
+          const status =
+            pct >= 100
+              ? chalk.red("BLOCKED")
+              : pct >= 80
+                ? chalk.yellow(`${pct}%`)
+                : chalk.green(`${pct}%`);
+          console.log(
+            `  ${chalk.white(prefix.padEnd(25))} ${fmtUSD(spent)} / ${fmtUSD(b.budget)} ${b.period}  (${status})`,
+          );
+        }
+        return;
+      }
+
+      if (!opts.key) {
+        console.error(chalk.red("--key is required for caps."));
+        console.log(
+          chalk.dim("Use: tokenclaw cap --key <prefix> --daily <amount>"),
         );
         process.exit(1);
         return;
@@ -985,7 +1093,7 @@ program
 program
   .command("proxy")
   .description(
-    "Start the enforcement proxy (required for --key alerts and caps)",
+    "Start the enforcement proxy (required for per-key alerts and caps)",
   )
   .option("--port <port>", "Port to listen on", "4040")
   .action((opts: { port: string }) => {
@@ -995,46 +1103,6 @@ program
       process.exit(1);
     }
     startProxy(port);
-  });
-
-// ── KEYS ──
-
-program
-  .command("keys")
-  .description("Show alerts and caps set on individual API keys")
-  .action(() => {
-    initDB();
-    const config = loadConfig();
-    const budgets = config.key_budgets;
-
-    if (Object.keys(budgets).length === 0) {
-      console.log(chalk.dim("No per-key rules configured."));
-      console.log(
-        chalk.dim("Use: tokenclaw alert --key <prefix> --daily <amount>"),
-      );
-      console.log(
-        chalk.dim("  or: tokenclaw cap --key <prefix> --daily <amount>"),
-      );
-      return;
-    }
-
-    for (const [prefix, b] of Object.entries(budgets)) {
-      const since = getBudgetWindowStart(b.period);
-      const spent = getSpendByKeyPrefix(prefix, since);
-      const pct = b.budget > 0 ? Math.round((spent / b.budget) * 100) : 0;
-      const hasBlock = b.rules.some((r) => r.action === "block");
-      const type = hasBlock ? chalk.red("cap") : chalk.yellow("alert");
-      const status =
-        pct >= 100 && hasBlock
-          ? chalk.red("BLOCKED")
-          : pct >= 100
-            ? chalk.yellow("OVER")
-            : chalk.green(`${pct}%`);
-
-      console.log(
-        `  ${type}  ${chalk.white(prefix.padEnd(25))} ${fmtUSD(spent)} / ${fmtUSD(b.budget)} ${b.period}  (${status})`,
-      );
-    }
   });
 
 // ── CONFIG ──
