@@ -176,14 +176,17 @@ function shortModel(model: string): string {
     .replace(/-\d{4,}$/, "");
 }
 
+function isUUID(name: string): boolean {
+  return /^[0-9a-f]{8}-/.test(name);
+}
+
 function shortProject(name: string): string {
-  if (/^[0-9a-f]{8}-/.test(name)) return "(session)";
+  if (isUUID(name)) return "(session)";
   const parts = name.split("/");
-  const last = parts[parts.length - 1] || name;
   if (parts.length >= 2) {
     return parts.slice(-2).join("/");
   }
-  return last;
+  return parts[parts.length - 1] || name;
 }
 
 function printScanResults(
@@ -556,8 +559,6 @@ function listModels(
 function listProjects(
   found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
 ): void {
-  console.log(chalk.bold("Cost by project\n"));
-
   const allProjects: Record<
     string,
     { cost: number; sessions: number; tool: string }
@@ -581,14 +582,10 @@ function listProjects(
   );
   const maxCost = sorted[0]?.[1].cost || 1;
 
-  if (sorted.length === 0) {
-    console.log(
-      chalk.dim("  No named projects found (only anonymous sessions)."),
-    );
-    return;
-  }
+  if (sorted.length === 0) return;
 
-  for (const [key, data] of sorted.slice(0, 15)) {
+  console.log(chalk.bold("Cost by project\n"));
+  for (const [key, data] of sorted.slice(0, 10)) {
     const name = key.split("|")[0]!;
     const barLen = Math.max(1, Math.round((data.cost / maxCost) * 20));
     const bar =
@@ -809,7 +806,7 @@ program
     const apiOnly = found.filter((t) => t.billingType === "api");
 
     if (apiOnly.length > 0) {
-      console.log(chalk.bold.underline("API Spend\n"));
+      console.log(chalk.bold("API Spend\n"));
       listModels(apiOnly);
       console.log();
       listProjects(apiOnly);
@@ -819,16 +816,54 @@ program
       listUsage(apiOnly);
       console.log();
       listEfficiency(apiOnly);
-      console.log();
+      if (hasProxyData()) {
+        console.log();
+        listKeySpend();
+      }
     } else {
       console.log(chalk.dim("No API-billed tool usage found.\n"));
     }
 
-    listSubscriptions(found);
+    if (apiOnly.length > 0) {
+      const allDaily = apiOnly.flatMap((t) => t.dailyCosts);
+      const dailyTotals: Record<string, number> = {};
+      for (const d of allDaily)
+        dailyTotals[d.date] = (dailyTotals[d.date] || 0) + d.cost;
+      const days = Object.values(dailyTotals);
+      if (days.length >= 2) {
+        const avgDaily = days.reduce((s, c) => s + c, 0) / days.length;
+        const projected = avgDaily * 30;
+        console.log();
+        console.log(chalk.bold(`  At current pace: ${fmtUSD(projected)}/mo`));
+      }
+    }
 
-    if (hasProxyData()) {
-      console.log();
-      listKeySpend();
+    const subs = found.filter(
+      (t) => t.billingType === "subscription" && t.planCost,
+    );
+    if (subs.length > 0) {
+      const totalConsumed = subs.reduce((s, t) => s + t.totalCost, 0);
+      const uniquePlans = new Map<string, number>();
+      for (const t of subs) {
+        const plan = t.planName || "Unknown";
+        if (
+          !uniquePlans.has(plan) ||
+          (t.planCost || 0) > uniquePlans.get(plan)!
+        ) {
+          uniquePlans.set(plan, t.planCost || 0);
+        }
+      }
+      const totalPaid = [...uniquePlans.values()].reduce((s, c) => s + c, 0);
+      const leverage =
+        totalPaid > 0 ? Math.round(totalConsumed / totalPaid) : 0;
+      if (leverage > 1) {
+        console.log();
+        console.log(
+          chalk.dim(
+            `  ✦ btw — your Claude ${[...uniquePlans.keys()].join("/")} (${fmtUSD(totalPaid)}/mo) consumed ${fmtUSD(totalConsumed)} at API rates this month. ${leverage}x value.`,
+          ),
+        );
+      }
     }
   });
 
