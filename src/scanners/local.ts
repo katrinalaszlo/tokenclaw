@@ -94,6 +94,7 @@ async function parseJsonlFile(filePath: string): Promise<{
   cacheCreationTokens: number;
   costUSD: number;
   modelUsage: Record<string, ModelUsage>;
+  dateCosts: Record<string, number>;
 }> {
   let content: string;
   try {
@@ -106,15 +107,17 @@ async function parseJsonlFile(filePath: string): Promise<{
       cacheCreationTokens: 0,
       costUSD: 0,
       modelUsage: {},
+      dateCosts: {},
     };
   }
 
   const lines = content.split("\n").filter((l) => l.trim());
   const lastUsageByMsg = new Map<
     string,
-    { model: string; usage: Record<string, unknown> }
+    { model: string; usage: Record<string, unknown>; date: string }
   >();
   let anonCounter = 0;
+  const fallbackDate = new Date().toISOString().split("T")[0]!;
 
   for (const line of lines) {
     let parsed: Record<string, unknown>;
@@ -129,22 +132,26 @@ async function parseJsonlFile(filePath: string): Promise<{
       | undefined;
     if (!msg?.usage) continue;
 
+    const ts = (parsed.timestamp ?? parsed.ts) as string | undefined;
+    const date = ts ? ts.split("T")[0]! : fallbackDate;
+
     const msgId = msg.id ?? `anon-${anonCounter++}`;
     lastUsageByMsg.set(msgId, {
       model: msg.model || "unknown",
       usage: msg.usage,
+      date,
     });
   }
 
   const modelUsage: Record<string, ModelUsage> = {};
+  const dateCosts: Record<string, number> = {};
   let totalInput = 0,
     totalOutput = 0,
     totalCacheRead = 0,
     totalCacheCreation = 0,
     totalCost = 0;
 
-  for (const [, { model, usage }] of lastUsageByMsg) {
-    // Handle both Claude Code format (input_tokens) and OpenClaw format (input)
+  for (const [, { model, usage, date }] of lastUsageByMsg) {
     const input = Number(usage.input_tokens ?? usage.input) || 0;
     const output = Number(usage.output_tokens ?? usage.output) || 0;
     const cacheRead =
@@ -174,6 +181,7 @@ async function parseJsonlFile(filePath: string): Promise<{
     const cost = estimateCost(model, input, output, cacheRead, cacheCreation);
     modelUsage[model].costUSD += cost;
     totalCost += cost;
+    dateCosts[date] = (dateCosts[date] || 0) + cost;
   }
 
   return {
@@ -183,6 +191,7 @@ async function parseJsonlFile(filePath: string): Promise<{
     cacheCreationTokens: totalCacheCreation,
     costUSD: totalCost,
     modelUsage,
+    dateCosts,
   };
 }
 
@@ -245,18 +254,12 @@ export async function scanLocalTools(): Promise<{
       totalCacheCreation += result.cacheCreationTokens;
       totalCost += result.costUSD;
 
-      // Get file date for time series
-      let fileDate: string;
-      try {
-        const fileStat = await stat(file);
-        fileDate = fileStat.mtime.toISOString().split("T")[0]!;
-      } catch {
-        fileDate = new Date().toISOString().split("T")[0]!;
+      for (const [date, cost] of Object.entries(result.dateCosts)) {
+        const dayEntry = dailyMap.get(date) || { cost: 0, sessions: 0 };
+        dayEntry.cost += cost;
+        dayEntry.sessions += 1;
+        dailyMap.set(date, dayEntry);
       }
-      const dayEntry = dailyMap.get(fileDate) || { cost: 0, sessions: 0 };
-      dayEntry.cost += result.costUSD;
-      dayEntry.sessions += 1;
-      dailyMap.set(fileDate, dayEntry);
 
       for (const [model, usage] of Object.entries(result.modelUsage)) {
         if (!modelUsage[model]) {
