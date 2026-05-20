@@ -46,15 +46,21 @@ Reads session logs stored locally. Only shows API-billed spend — subscription 
 
 ## Alert — get notified when spend crosses a dollar amount
 
-No proxy needed for total spend alerts. Per-key alerts require the proxy.
-
-**1. Connect Slack:**
+### Connect Slack
 
 ```bash
 tokenclaw alert --setup
 ```
 
-**2. Set a threshold:**
+Or set the webhook directly:
+
+```bash
+tokenclaw config slack https://hooks.slack.com/services/T00/B00/xxx
+```
+
+### Set thresholds
+
+No proxy needed for total spend. Per-key alerts require the proxy.
 
 ```bash
 tokenclaw alert --daily 50                  # Slack at $50/day total
@@ -62,13 +68,13 @@ tokenclaw alert --weekly 250                # Slack at $250/week total
 tokenclaw alert --key sk-abc --daily 10     # Slack at $10/day on this key (proxy)
 ```
 
-**3. Start monitoring:**
+### Start monitoring
 
 ```bash
-tokenclaw alert --watch                     # checks hourly, sends Slack when threshold crossed
+tokenclaw alert --watch
 ```
 
-`--watch` must be running for alerts to fire. Run in a background terminal or add to cron.
+Checks every hour, sends Slack when a threshold is crossed. Must be running for alerts to fire. Run in a background terminal or add to cron.
 
 ```bash
 tokenclaw alert --ack                       # silence alerts for 24h
