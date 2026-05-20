@@ -471,7 +471,6 @@ async function runInit(): Promise<void> {
 
 async function runList(view: string): Promise<void> {
   initDB();
-  console.log(chalk.dim("Scanning local AI tools...\n"));
   const { found } = await scanLocalTools();
   persistScanToDB(found);
 
@@ -535,19 +534,21 @@ function listModels(
     }
   }
 
-  const sorted = Object.entries(allModels).sort(
-    ([, a], [, b]) => b.cost - a.cost,
-  );
+  const sorted = Object.entries(allModels)
+    .filter(([, data]) => data.input + data.output > 0)
+    .sort(([, a], [, b]) => b.cost - a.cost);
   const maxCost = sorted[0]?.[1].cost || 1;
+  const uniqueTools = new Set(sorted.flatMap(([, d]) => d.tools));
 
   for (const [model, data] of sorted) {
     const barLen = Math.max(1, Math.round((data.cost / maxCost) * 20));
     const bar =
       chalk.cyan("█".repeat(barLen)) + chalk.dim("░".repeat(20 - barLen));
+    const toolSuffix =
+      uniqueTools.size > 1 ? chalk.dim(`  ${data.tools.join(", ")}`) : "";
     console.log(
-      `  ${chalk.white(shortModel(model).padEnd(18))} ${chalk.cyan(fmtUSD(data.cost).padStart(10))}  ${bar}  ${chalk.dim(fmtTokens(data.input + data.output) + " tokens")}`,
+      `  ${chalk.white(shortModel(model).padEnd(18))} ${chalk.cyan(fmtUSD(data.cost).padStart(10))}  ${bar}  ${chalk.dim(fmtTokens(data.input + data.output) + " tokens")}${toolSuffix}`,
     );
-    console.log(chalk.dim(`  ${"".padEnd(18)} ${data.tools.join(", ")}`));
   }
 }
 
@@ -578,6 +579,13 @@ function listProjects(
     ([, a], [, b]) => b.cost - a.cost,
   );
   const maxCost = sorted[0]?.[1].cost || 1;
+
+  if (sorted.length === 0) {
+    console.log(
+      chalk.dim("  No named projects found (only anonymous sessions)."),
+    );
+    return;
+  }
 
   for (const [key, data] of sorted.slice(0, 15)) {
     const name = key.split("|")[0]!;
@@ -698,6 +706,31 @@ function listEfficiency(
   }
 }
 
+function listSubscriptions(
+  found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
+): void {
+  const subs = found.filter(
+    (t) => t.billingType === "subscription" && t.planCost,
+  );
+  if (subs.length === 0) return;
+
+  console.log(chalk.bold("Subscription value\n"));
+  for (const t of subs) {
+    const leverage =
+      t.planCost! > 0 ? Math.round(t.totalCost / t.planCost!) : 0;
+    console.log(
+      `  ${chalk.white(t.tool.padEnd(20))} ${chalk.green(t.planName + " $" + t.planCost + "/mo")}` +
+        chalk.dim(`  ${t.sessions} sessions`) +
+        `  ${chalk.cyan(`${leverage}x`)} value`,
+    );
+    console.log(
+      chalk.dim(
+        `  ${"".padEnd(20)} consuming ${fmtUSD(t.totalCost)} at API rates`,
+      ),
+    );
+  }
+}
+
 function runConfig(): void {
   const config = loadConfig();
   const configPath = getConfigPath();
@@ -744,37 +777,34 @@ program
 
 // ── VIEW ──
 
-const spend = program.command("view").description("See your API spend");
+program
+  .command("view")
+  .description(
+    "See your API spend (models, projects, trends, usage, efficiency)",
+  )
+  .action(async () => {
+    initDB();
+    const { found } = await scanLocalTools();
+    persistScanToDB(found);
+    const apiOnly = found.filter((t) => t.billingType === "api");
 
-spend
-  .command("models")
-  .description("Cost by model")
-  .action(async () => {
-    await runList("models");
-  });
-spend
-  .command("projects")
-  .description("Cost by project")
-  .action(async () => {
-    await runList("projects");
-  });
-spend
-  .command("trends")
-  .description("Daily spend over time")
-  .action(async () => {
-    await runList("trends");
-  });
-spend
-  .command("usage")
-  .description("Token counts")
-  .action(async () => {
-    await runList("usage");
-  });
-spend
-  .command("efficiency")
-  .description("Cache rates, cost per session")
-  .action(async () => {
-    await runList("efficiency");
+    if (apiOnly.length > 0) {
+      console.log(chalk.bold.underline("API Spend\n"));
+      listModels(apiOnly);
+      console.log();
+      listProjects(apiOnly);
+      console.log();
+      listTrends(apiOnly);
+      console.log();
+      listUsage(apiOnly);
+      console.log();
+      listEfficiency(apiOnly);
+      console.log();
+    } else {
+      console.log(chalk.dim("No API-billed tool usage found.\n"));
+    }
+
+    listSubscriptions(found);
   });
 
 // ── ALERT ──
