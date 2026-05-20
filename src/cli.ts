@@ -824,20 +824,6 @@ program
       console.log(chalk.dim("No API-billed tool usage found.\n"));
     }
 
-    if (apiOnly.length > 0) {
-      const allDaily = apiOnly.flatMap((t) => t.dailyCosts);
-      const dailyTotals: Record<string, number> = {};
-      for (const d of allDaily)
-        dailyTotals[d.date] = (dailyTotals[d.date] || 0) + d.cost;
-      const days = Object.values(dailyTotals);
-      if (days.length >= 2) {
-        const avgDaily = days.reduce((s, c) => s + c, 0) / days.length;
-        const projected = avgDaily * 30;
-        console.log();
-        console.log(chalk.bold(`  At current pace: ${fmtUSD(projected)}/mo`));
-      }
-    }
-
     const subs = found.filter(
       (t) => t.billingType === "subscription" && t.planCost,
     );
