@@ -121,6 +121,7 @@ export async function parseJsonlFile(filePath: string): Promise<{
   costUSD: number;
   modelUsage: Record<string, ModelUsage>;
   dateCosts: Record<string, number>;
+  modelDateCosts: Record<string, Record<string, ModelDateCost>>;
   firstTimestamp: string | undefined;
   lastTimestamp: string | undefined;
 }> {
@@ -136,6 +137,7 @@ export async function parseJsonlFile(filePath: string): Promise<{
       costUSD: 0,
       modelUsage: {},
       dateCosts: {},
+      modelDateCosts: {},
       firstTimestamp: undefined,
       lastTimestamp: undefined,
     };
