@@ -548,17 +548,31 @@ function listModels(
 
   const allModels: Record<
     string,
-    { cost: number; input: number; output: number; tools: string[] }
+    {
+      cost: number;
+      input: number;
+      output: number;
+      cache: number;
+      tools: string[];
+    }
   > = {};
 
   for (const t of found) {
     for (const [model, usage] of Object.entries(t.modelUsage)) {
       if (!allModels[model]) {
-        allModels[model] = { cost: 0, input: 0, output: 0, tools: [] };
+        allModels[model] = {
+          cost: 0,
+          input: 0,
+          output: 0,
+          cache: 0,
+          tools: [],
+        };
       }
       allModels[model].cost += usage.costUSD;
       allModels[model].input += usage.inputTokens;
       allModels[model].output += usage.outputTokens;
+      allModels[model].cache +=
+        usage.cacheReadTokens + usage.cacheCreationTokens;
       if (!allModels[model].tools.includes(t.tool)) {
         allModels[model].tools.push(t.tool);
       }
@@ -577,8 +591,10 @@ function listModels(
       chalk.cyan("█".repeat(barLen)) + chalk.dim("░".repeat(20 - barLen));
     const toolSuffix =
       uniqueTools.size > 1 ? chalk.dim(`  ${data.tools.join(", ")}`) : "";
+    const cacheSuffix =
+      data.cache > 0 ? ` + ${fmtTokens(data.cache)} cache` : "";
     console.log(
-      `  ${chalk.white(shortModel(model).padEnd(18))} ${chalk.cyan(fmtUSD(data.cost).padStart(10))}  ${bar}  ${chalk.dim(fmtTokens(data.input + data.output) + " tokens")}${toolSuffix}`,
+      `  ${chalk.white(shortModel(model).padEnd(18))} ${chalk.cyan(fmtUSD(data.cost).padStart(10))}  ${bar}  ${chalk.dim(fmtTokens(data.input + data.output) + " in/out" + cacheSuffix)}${toolSuffix}`,
     );
   }
 }
@@ -674,22 +690,20 @@ function listUsage(
 
   for (const t of found) {
     const total = t.inputTokens + t.outputTokens;
-    const inputPct = total > 0 ? Math.round((t.inputTokens / total) * 100) : 0;
-    const outputPct = 100 - inputPct;
 
     console.log(chalk.white(`  ${t.tool}`));
     console.log(
-      `    Input:    ${chalk.cyan(fmtTokens(t.inputTokens).padStart(8))}  ${chalk.dim(`(${inputPct}%)`)}`,
+      `    Input:    ${chalk.cyan(fmtTokens(t.inputTokens).padStart(8))}`,
     );
     console.log(
-      `    Output:   ${chalk.cyan(fmtTokens(t.outputTokens).padStart(8))}  ${chalk.dim(`(${outputPct}%)`)}`,
+      `    Output:   ${chalk.cyan(fmtTokens(t.outputTokens).padStart(8))}`,
     );
     console.log(
       `    Cache:    ${chalk.green(fmtTokens(t.cacheReadTokens).padStart(8))}  ${chalk.dim("read")}` +
         `   ${chalk.yellow(fmtTokens(t.cacheCreationTokens).padStart(8))}  ${chalk.dim("write")}`,
     );
     console.log(
-      `    Total:    ${chalk.white(fmtTokens(total).padStart(8))}  ${chalk.dim(`across ${t.sessions} sessions`)}`,
+      `    In/Out:   ${chalk.white(fmtTokens(total).padStart(8))}  ${chalk.dim(`across ${t.sessions} sessions`)}`,
     );
     console.log();
   }
@@ -701,30 +715,31 @@ function listEfficiency(
   console.log(chalk.bold("Efficiency\n"));
 
   for (const t of found) {
-    const totalTokens = t.inputTokens + t.outputTokens;
     const costPerSession = t.sessions > 0 ? t.totalCost / t.sessions : 0;
     const cacheTotal = t.cacheReadTokens + t.cacheCreationTokens;
-    const cacheHitRate =
+    const rawRate =
       cacheTotal > 0
-        ? Math.round(
-            (t.cacheReadTokens / (t.cacheReadTokens + t.inputTokens)) * 100,
-          )
+        ? (t.cacheReadTokens / (t.cacheReadTokens + t.inputTokens)) * 100
         : 0;
+    const cacheHitRate =
+      rawRate >= 100 || t.inputTokens === 0
+        ? "100%"
+        : rawRate >= 99.95
+          ? ">99.9%"
+          : `${rawRate.toFixed(1)}%`;
 
     console.log(chalk.white(`  ${t.tool}`));
     console.log(`    Cost/session:   ${chalk.cyan(fmtUSD(costPerSession))}`);
     console.log(
-      `    Cost/1K tokens: ${chalk.cyan(fmtUSD(totalTokens > 0 ? (t.totalCost / totalTokens) * 1000 : 0))}`,
-    );
-    console.log(
-      `    Cache hit rate: ${cacheHitRate > 50 ? chalk.green(`${cacheHitRate}%`) : chalk.yellow(`${cacheHitRate}%`)}`,
+      `    Cache hit rate: ${rawRate > 50 ? chalk.green(cacheHitRate) : chalk.yellow(cacheHitRate)}`,
     );
 
     if (t.billingType === "subscription" && t.planCost) {
       const leverage =
         t.planCost > 0 ? Math.round(t.totalCost / t.planCost) : 0;
+      const assumed = t.planCostAssumed ? ", assumed" : "";
       console.log(
-        `    Subscription:   ${chalk.green(`${leverage}x`)} value ${chalk.dim(`(paying $${t.planCost}/mo, consuming ${fmtUSD(t.totalCost)} at API rates)`)}`,
+        `    Subscription:   ${chalk.green(`${leverage}x`)} value ${chalk.dim(`(paying $${t.planCost}/mo${assumed}, consuming ${fmtUSD(t.totalCost)} at API rates)`)}`,
       );
     }
     console.log();
@@ -870,10 +885,12 @@ program
       const leverage =
         totalPaid > 0 ? Math.round(totalConsumed / totalPaid) : 0;
       if (leverage > 1) {
+        const anyAssumed = subs.some((t) => t.planCostAssumed);
+        const assumed = anyAssumed ? ", assumed" : "";
         console.log();
         console.log(
           chalk.dim(
-            `  ✦ btw — your Claude ${[...uniquePlans.keys()].join("/")} (${fmtUSD(totalPaid)}/mo) consumed ${fmtUSD(totalConsumed)} at API rates this month. ${leverage}x value.`,
+            `  ✦ btw — your Claude ${[...uniquePlans.keys()].join("/")} (${fmtUSD(totalPaid)}/mo${assumed}) consumed ${fmtUSD(totalConsumed)} at API rates this month. ${leverage}x value.`,
           ),
         );
       }

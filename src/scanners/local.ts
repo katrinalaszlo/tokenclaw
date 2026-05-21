@@ -31,6 +31,7 @@ export type ToolScanResult = {
   billingType: "subscription" | "api";
   planName?: string;
   planCost?: number;
+  planCostAssumed?: boolean;
 };
 
 const TOOLS: { name: string; paths: string[]; recursive: boolean }[] = [
@@ -53,6 +54,10 @@ const TOOLS: { name: string; paths: string[]; recursive: boolean }[] = [
   { name: "Continue.dev", paths: [".continue/sessions"], recursive: true },
 ];
 
+function isAuxiliaryFile(name: string): boolean {
+  return name.includes(".checkpoint.") || name.includes(".trajectory.");
+}
+
 async function findJsonlFiles(
   dir: string,
   recursive: boolean,
@@ -62,7 +67,11 @@ async function findJsonlFiles(
     const entries = await readdir(dir, { withFileTypes: true });
     for (const entry of entries) {
       const full = join(dir, entry.name);
-      if (entry.isFile() && entry.name.endsWith(".jsonl")) {
+      if (
+        entry.isFile() &&
+        entry.name.endsWith(".jsonl") &&
+        !isAuxiliaryFile(entry.name)
+      ) {
         results.push(full);
       } else if (entry.isDirectory() && recursive) {
         const sub = await findJsonlFiles(full, true);
@@ -72,7 +81,7 @@ async function findJsonlFiles(
         try {
           const subEntries = await readdir(full);
           for (const sf of subEntries) {
-            if (sf.endsWith(".jsonl")) {
+            if (sf.endsWith(".jsonl") && !isAuxiliaryFile(sf)) {
               results.push(join(full, sf));
             }
           }
@@ -128,14 +137,19 @@ async function parseJsonlFile(filePath: string): Promise<{
     }
 
     const msg = parsed.message as
-      | { id?: string; usage?: Record<string, unknown>; model?: string }
+      | {
+          id?: string;
+          responseId?: string;
+          usage?: Record<string, unknown>;
+          model?: string;
+        }
       | undefined;
     if (!msg?.usage) continue;
 
     const ts = (parsed.timestamp ?? parsed.ts) as string | undefined;
     const date = ts ? ts.split("T")[0]! : fallbackDate;
 
-    const msgId = msg.id ?? `anon-${anonCounter++}`;
+    const msgId = msg.responseId ?? msg.id ?? `anon-${anonCounter++}`;
     lastUsageByMsg.set(msgId, {
       model: msg.model || "unknown",
       usage: msg.usage,
@@ -344,6 +358,7 @@ async function detectBillingType(toolName: string): Promise<{
   billingType: "subscription" | "api";
   planName?: string;
   planCost?: number;
+  planCostAssumed?: boolean;
 }> {
   const home = homedir();
 
@@ -358,7 +373,12 @@ async function detectBillingType(toolName: string): Promise<{
     } catch {
       /* no settings file */
     }
-    return { billingType: "subscription", planName: "Max", planCost: 200 };
+    return {
+      billingType: "subscription",
+      planName: "Max",
+      planCost: 200,
+      planCostAssumed: true,
+    };
   }
 
   if (toolName === "OpenClaw") {
@@ -366,11 +386,21 @@ async function detectBillingType(toolName: string): Promise<{
   }
 
   if (toolName === "Cursor") {
-    return { billingType: "subscription", planName: "Pro", planCost: 20 };
+    return {
+      billingType: "subscription",
+      planName: "Pro",
+      planCost: 20,
+      planCostAssumed: true,
+    };
   }
 
   if (toolName === "Claude Desktop") {
-    return { billingType: "subscription", planName: "Max", planCost: 200 };
+    return {
+      billingType: "subscription",
+      planName: "Max",
+      planCost: 200,
+      planCostAssumed: true,
+    };
   }
 
   // Default: assume API for tools we don't know
