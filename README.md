@@ -30,6 +30,12 @@ tokenclaw tracks your API spend and gives you visibility and control before it b
 npm install -g tokenclaw-dev
 ```
 
+If `tokenclaw` isn't found after installing, use `npx tokenclaw-dev` instead — or add an alias:
+
+```bash
+echo 'alias tokenclaw="npx tokenclaw-dev"' >> ~/.zshrc && source ~/.zshrc
+```
+
 ---
 
 ## View — see your API spend
@@ -170,23 +176,7 @@ Sends a Slack digest with yesterday's spend, weekly totals, top tool/model, 7-da
 
 ## Claude Code hook — see cost after every turn
 
-```bash
-tokenclaw hook install
-```
-
-Adds a `Stop` hook to `~/.claude/settings.json`. After each conversation turn, you'll see:
-
-```
-[tokenclaw] $18.32/$50 (37%)
-```
-
-To remove:
-
-```bash
-tokenclaw hook uninstall
-```
-
-Or add manually to your `.claude/settings.json`:
+Add to your `~/.claude/settings.json`:
 
 ```json
 {
@@ -197,7 +187,7 @@ Or add manually to your `.claude/settings.json`:
         "hooks": [
           {
             "type": "command",
-            "command": "tokenclaw status --oneliner 2>/dev/null || true"
+            "command": "npx tokenclaw-dev status --oneliner 2>/dev/null || true"
           }
         ]
       }
@@ -205,6 +195,10 @@ Or add manually to your `.claude/settings.json`:
   }
 }
 ```
+
+After each conversation turn, you'll see: `[tokenclaw] $18.32/$50 (37%)`
+
+Or if `tokenclaw` is on your PATH: `tokenclaw hook install` / `tokenclaw hook uninstall`
 
 > **NOTE:** Uses `Stop` (fires once per turn), NOT `PostToolUse` (fires per tool call — would spam 10-30x per turn).
 
@@ -269,24 +263,22 @@ AI agents can self-check their spend via the Model Context Protocol (MCP). The s
 
 ### Install
 
-```bash
-tokenclaw mcp install
-```
-
-This adds the server to `~/.claude/settings.json`:
+Add to your `~/.claude/settings.json`:
 
 ```json
 {
   "mcpServers": {
     "tokenclaw": {
-      "command": "tokenclaw",
-      "args": ["mcp"]
+      "command": "npx",
+      "args": ["tokenclaw-dev", "mcp"]
     }
   }
 }
 ```
 
-To remove: `tokenclaw mcp uninstall`
+Or if `tokenclaw` is on your PATH: `tokenclaw mcp install`
+
+To remove: delete the `tokenclaw` key from `mcpServers`, or `tokenclaw mcp uninstall`
 
 ### Tools
 
