@@ -47,6 +47,7 @@ import {
   isMac,
 } from "./launchd.js";
 import { getBudgetWindowStart } from "./proxy/parse.js";
+import { writeState, readState, isStateStale } from "./state.js";
 
 // ── Helpers ──
 
@@ -332,6 +333,11 @@ async function runScan(): Promise<void> {
 
   printScanResults(found, notFound);
   persistScanToDB(found);
+
+  try {
+    const config = loadConfig();
+    writeState(found, config);
+  } catch {}
 }
 
 async function runWatch(once: boolean): Promise<void> {
@@ -344,6 +350,10 @@ async function runWatch(once: boolean): Promise<void> {
     );
     const { found } = await scanLocalTools();
     persistScanToDB(found);
+
+    try {
+      writeState(found, config);
+    } catch {}
 
     const history = dbAlertsToHistory(getRecentAlerts(168));
     const ackState = getAckState();
@@ -845,6 +855,12 @@ program
     initDB();
     const { found } = await scanLocalTools();
     persistScanToDB(found);
+
+    try {
+      const config = loadConfig();
+      writeState(found, config);
+    } catch {}
+
     const apiOnly = found.filter((t) => t.billingType === "api");
 
     if (apiOnly.length > 0) {
@@ -895,6 +911,57 @@ program
         );
       }
     }
+  });
+
+// ── STATUS ──
+
+function shortModelName(model: string): string {
+  return model
+    .replace("claude-", "")
+    .replace("gpt-", "")
+    .replace(/-\d{4,}$/, "");
+}
+
+program
+  .command("status")
+  .description("Quick spend summary (reads cached state file)")
+  .option("--oneliner", "Single line for hooks/prompts (no color)")
+  .option("--json", "Print state as JSON")
+  .action(async (opts: { oneliner?: boolean; json?: boolean }) => {
+    let state = readState();
+
+    if (!state || isStateStale(state)) {
+      initDB();
+      const { found } = await scanLocalTools();
+      persistScanToDB(found);
+      const config = loadConfig();
+      writeState(found, config);
+      state = readState();
+    }
+
+    if (!state) {
+      console.error("No data available. Run `tokenclaw` first.");
+      process.exit(1);
+    }
+
+    if (opts.json) {
+      console.log(JSON.stringify(state, null, 2));
+      return;
+    }
+
+    if (opts.oneliner) {
+      console.log(
+        `[tokenclaw] $${state.today_usd.toFixed(2)}/$${state.daily_threshold} (${state.pct}%)`,
+      );
+      return;
+    }
+
+    console.log(
+      `${chalk.cyan("$" + state.today_usd.toFixed(2))} / ${chalk.dim("$" + state.daily_threshold.toFixed(2))} (${state.pct}%)` +
+        chalk.dim(
+          ` | ${state.sessions_today} sessions | ${shortModelName(state.top_model)}`,
+        ),
+    );
   });
 
 // ── ALERT ──
