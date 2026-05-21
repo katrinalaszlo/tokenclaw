@@ -993,7 +993,7 @@ const program = new Command();
 program
   .name("tokenclaw")
   .description("See, alert, and control AI agent spend")
-  .version("2.0.0")
+  .version("2.3.0")
   .option("--no-color", "Disable colored output")
   .option("--config <path>", "Custom config file path")
   .hook("preAction", (_thisCommand, _actionCommand) => {
@@ -1103,20 +1103,27 @@ program
       process.exit(1);
     }
 
+    const config = loadConfig();
+    const threshold = config.thresholds.daily;
+    const pct =
+      threshold > 0 ? Math.round((state.today_usd / threshold) * 100) : 0;
+
     if (opts.json) {
-      console.log(JSON.stringify(state, null, 2));
+      console.log(
+        JSON.stringify({ ...state, daily_threshold: threshold, pct }, null, 2),
+      );
       return;
     }
 
     if (opts.oneliner) {
       console.log(
-        `[tokenclaw] $${state.today_usd.toFixed(2)}/$${state.daily_threshold} (${state.pct}%)`,
+        `[tokenclaw] $${state.today_usd.toFixed(2)}/$${threshold} (${pct}%)`,
       );
       return;
     }
 
     console.log(
-      `${chalk.cyan("$" + state.today_usd.toFixed(2))} / ${chalk.dim("$" + state.daily_threshold.toFixed(2))} (${state.pct}%)` +
+      `${chalk.cyan("$" + state.today_usd.toFixed(2))} / ${chalk.dim("$" + threshold.toFixed(2))} (${pct}%)` +
         chalk.dim(
           ` | ${state.sessions_today} sessions | ${shortModelName(state.top_model)}`,
         ),
@@ -1339,7 +1346,7 @@ program
         saveConfig(config);
         console.log(
           chalk.green(
-            `Alert: ${opts.key} → Slack at $${limit.amount}/${limit.period}`,
+            `Alert set: ${opts.key} → $${limit.amount}/${limit.period}`,
           ),
         );
       } else {
@@ -1353,9 +1360,19 @@ program
         saveConfig(config);
         console.log(
           chalk.green(
-            `Alert: Slack at $${limit.amount}/${limit.period} total spend`,
+            `Alert set: $${limit.amount}/${limit.period} total spend`,
           ),
         );
+        if (!config.alerts.slack_webhook) {
+          console.log(
+            chalk.dim(
+              "  No Slack webhook configured. Alerts will print to terminal only.",
+            ),
+          );
+          console.log(
+            chalk.dim("  Add Slack: tokenclaw config slack <webhook-url>"),
+          );
+        }
 
         const result = installMonitoring();
         console.log(
