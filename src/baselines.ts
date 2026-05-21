@@ -6,6 +6,8 @@
 
 import { getCostSnapshots } from "./db.js";
 
+const SUBSCRIPTION_TOOLS = new Set(["Claude Code", "Cursor", "Claude Desktop"]);
+
 export interface Baseline {
   median: number;
   p75: number;
@@ -42,6 +44,7 @@ function getDailyTotals(tool?: string): Map<string, number> {
   const snapshots = getCostSnapshots(tool);
   const totals = new Map<string, number>();
   for (const snap of snapshots) {
+    if (!tool && SUBSCRIPTION_TOOLS.has(snap.tool)) continue;
     totals.set(snap.date, (totals.get(snap.date) ?? 0) + snap.amount_usd);
   }
   return totals;
@@ -110,6 +113,7 @@ export function getHistoryDays(): number {
   const snapshots = getCostSnapshots();
   const dates = new Set<string>();
   for (const snap of snapshots) {
+    if (SUBSCRIPTION_TOOLS.has(snap.tool)) continue;
     dates.add(snap.date);
   }
   return dates.size;
@@ -143,6 +147,7 @@ export function getToolBaselines(): Array<{ tool: string; median: number }> {
   const byTool = new Map<string, Map<string, number>>();
 
   for (const snap of snapshots) {
+    if (SUBSCRIPTION_TOOLS.has(snap.tool)) continue;
     if (!byTool.has(snap.tool)) byTool.set(snap.tool, new Map());
     const toolDays = byTool.get(snap.tool)!;
     toolDays.set(snap.date, (toolDays.get(snap.date) ?? 0) + snap.amount_usd);

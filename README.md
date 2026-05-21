@@ -135,7 +135,7 @@ Reads from `~/.tokenclaw/state.json` — updated on every scan, reads in <10ms. 
 tokenclaw baseline
 ```
 
-Shows per-day-of-week spending patterns (median, P95) from your history. Highlights today with percentage above/below your median. Needs at least 7 days of data.
+Shows per-day-of-week spending patterns (median, P95) from your history. **API-billed tools only** — subscription tools (Claude Code, Cursor) are excluded since their cost is fixed and can't spike your bill. Needs at least 7 days of data.
 
 ```
 Day         Median    P95       Today
