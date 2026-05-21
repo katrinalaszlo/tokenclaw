@@ -75,6 +75,14 @@ tokenclaw alert --weekly 250                # Slack at $250/week total
 tokenclaw alert --key sk-abc --daily 10     # Slack at $10/day on this key (proxy)
 ```
 
+### Velocity alert
+
+```bash
+tokenclaw alert --velocity 0.50     # Slack when burning >$0.50/min sustained
+```
+
+Alerts on spend *rate* over a 30-minute window from proxy data. Catches runaway agents that are burning fast but haven't hit the total threshold yet.
+
 ### Start monitoring
 
 ```bash
@@ -100,6 +108,63 @@ tokenclaw alert --log                       # when alerts fired, what triggered 
 tokenclaw alert --clear                     # remove total spend alerts
 tokenclaw alert --clear --key sk-abc        # remove alert on a specific key
 ```
+
+---
+
+## Status — fast spend check
+
+```bash
+tokenclaw status                    # $18.32 / $50.00 (37%) | 12 sessions | opus-4-6
+tokenclaw status --oneliner         # [tokenclaw] $18.32/$50 (37%)
+tokenclaw status --json             # full state as JSON
+```
+
+Reads from `~/.tokenclaw/state.json` — updated on every scan, reads in <10ms. Falls back to a live scan if state is stale (>2h).
+
+---
+
+## Baseline — see your spending patterns
+
+```bash
+tokenclaw baseline
+```
+
+Shows per-day-of-week spending patterns (median, P95) from your history. Highlights today with percentage above/below your median. Needs at least 7 days of data.
+
+```
+Day         Median    P95       Today
+Mon         $32.40    $67.10
+Tue         $28.50    $55.20    $41.00 <- today (+44%)
+...
+
+By tool:
+Claude Code  $24.50/day median
+OpenClaw     $8.20/day median
+```
+
+After 14 days, anomaly detection replaces the hardcoded spike multiplier with P95-based thresholds tuned to your actual patterns.
+
+---
+
+## Sessions — find expensive outliers
+
+```bash
+tokenclaw list sessions
+```
+
+Shows top 10 most expensive sessions sorted by cost. Sessions >3x your median are flagged.
+
+---
+
+## Digest — daily Slack summary
+
+```bash
+tokenclaw digest                    # build and send yesterday's digest
+tokenclaw digest --install          # schedule at 9 AM daily via launchd
+tokenclaw digest --uninstall        # remove schedule
+```
+
+Sends a Slack digest with yesterday's spend, weekly totals, top tool/model, 7-day average, and baseline context (after 14 days of history).
 
 ---
 
