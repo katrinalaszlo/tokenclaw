@@ -8,7 +8,7 @@ import { stdin, stdout } from "node:process";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
-import { scanLocalTools } from "./scanners/local.js";
+import { scanLocalTools, projectNameFromPath } from "./scanners/local.js";
 import {
   evaluateAlerts,
   type AlertRule,
@@ -902,14 +902,7 @@ function listSessions(
   );
 
   for (const s of top10) {
-    const projName = shortProject(
-      s.path
-        .split("/")
-        .filter((p) => p)
-        .slice(-2)
-        .join("/")
-        .replace(".jsonl", ""),
-    );
+    const projName = shortProject(projectNameFromPath(s.path, s.tool));
     const dur = s.duration_minutes > 0 ? `${s.duration_minutes}min` : "<1min";
     const costStr = fmtUSD(s.cost);
     const line = `${costStr.padStart(8)}  ${projName.padEnd(25)} ${shortModel(s.model).padEnd(14)} ${dur.padStart(7)}`;

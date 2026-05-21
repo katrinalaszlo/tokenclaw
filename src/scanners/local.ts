@@ -231,7 +231,10 @@ export async function parseJsonlFile(filePath: string): Promise<{
   };
 }
 
-function projectNameFromPath(filePath: string, toolName: string): string {
+export function projectNameFromPath(
+  filePath: string,
+  toolName: string,
+): string {
   if (toolName === "Claude Code") {
     const parts = filePath.split("/");
     const projIdx = parts.indexOf("projects");
