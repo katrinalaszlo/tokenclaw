@@ -36,6 +36,16 @@ If `tokenclaw` isn't found after installing, use `npx tokenclaw-dev` instead —
 echo 'alias tokenclaw="npx tokenclaw-dev"' >> ~/.zshrc && source ~/.zshrc
 ```
 
+## Quick start
+
+```bash
+tokenclaw view                      # see what you're spending
+tokenclaw alert --daily 50          # get Slack alerts at $50/day
+tokenclaw status                    # fast one-line spend check
+```
+
+That's it. `view` scans your local AI tools (Claude Code, OpenClaw, Cursor, Windsurf, etc.) and shows what each one costs. Nothing leaves your machine.
+
 ---
 
 ## View — see your API spend
@@ -44,15 +54,22 @@ echo 'alias tokenclaw="npx tokenclaw-dev"' >> ~/.zshrc && source ~/.zshrc
 tokenclaw view
 ```
 
-Shows all spend data in one shot: cost by model, cost by project, daily trends, token usage, efficiency, and subscription value. If the proxy is running, also shows spend by API key.
+Shows cost by model, cost by project, daily trends, token usage, efficiency, and subscription value. Scans session logs stored on your machine — Claude Code, OpenClaw, Cursor, Windsurf, Cline, Roo Code, Aider, Continue.dev.
 
-Reads session logs stored locally. Only shows API-billed spend — subscription tools (Claude Code Pro, Cursor Pro) are shown separately with their value multiplier. Nothing leaves your machine.
+API-billed tools show actual dollar spend. Subscription tools (Claude Code Pro/Max, Cursor Pro) are shown separately with how much compute you're getting for your flat monthly fee.
 
 ---
 
 ## Alert — get notified when spend crosses a dollar amount
 
-### Connect Slack
+### Set thresholds
+
+```bash
+tokenclaw alert --daily 50                  # alert at $50/day total
+tokenclaw alert --weekly 250                # alert at $250/week total
+```
+
+Alerts print to terminal by default. Connect Slack to get notified when you're not watching:
 
 ```bash
 tokenclaw config slack https://hooks.slack.com/services/T00/B00/xxx
@@ -61,120 +78,56 @@ tokenclaw config slack https://hooks.slack.com/services/T00/B00/xxx
 <details>
 <summary>How to get a Slack webhook URL</summary>
 
-1. Go to [api.slack.com/apps](https://api.slack.com/apps) → **Create New App** → **From scratch**
-2. App name: "tokenclaw", pick your workspace → **Create App**
-3. Left sidebar → **Incoming Webhooks**
+1. Go to [api.slack.com/apps](https://api.slack.com/apps) -> **Create New App** -> **From scratch**
+2. App name: "tokenclaw", pick your workspace -> **Create App**
+3. Left sidebar -> **Incoming Webhooks**
 4. Toggle **Activate Incoming Webhooks** to On
-5. Scroll down → click **Add New Webhook to Workspace**
-6. Pick a channel → **Allow**
+5. Scroll down -> click **Add New Webhook to Workspace**
+6. Pick a channel -> **Allow**
 7. Back on the webhooks page, copy the URL that was just created (starts with `https://hooks.slack.com/services/...`)
 
 </details>
 
-### Set thresholds
-
-No proxy needed for total spend. Per-key alerts require the proxy.
-
-```bash
-tokenclaw alert --daily 50                  # Slack at $50/day total
-tokenclaw alert --weekly 250                # Slack at $250/week total
-tokenclaw alert --key sk-abc --daily 10     # Slack at $10/day on this key (proxy)
-```
-
-### Velocity alert
-
-```bash
-tokenclaw alert --velocity 0.50     # Slack when burning >$0.50/min sustained
-```
-
-Alerts on spend *rate* over a 30-minute window from proxy data. Catches runaway agents that are burning fast but haven't hit the total threshold yet.
-
 ### Start monitoring
 
 ```bash
-tokenclaw alert --watch
+tokenclaw alert --watch                     # check every hour, alert when threshold crossed
+tokenclaw alert --check                     # check once and exit (for cron/launchd)
 ```
-
-Checks every hour, sends Slack when a threshold is crossed. Must be running for alerts to fire. Run in a background terminal or add to cron.
 
 ```bash
 tokenclaw alert --ack                       # silence alerts for 24h
-tokenclaw alert                             # show current thresholds
-```
-
-### Alert log
-
-```bash
-tokenclaw alert --log                       # when alerts fired, what triggered them
-```
-
-### Clear alerts
-
-```bash
-tokenclaw alert --clear                     # remove total spend alerts
-tokenclaw alert --clear --key sk-abc        # remove alert on a specific key
+tokenclaw alert                             # show current thresholds and recent alerts
+tokenclaw alert --log                       # alert history
+tokenclaw alert --clear                     # remove alerts
 ```
 
 ---
 
-## Status — fast spend check
+## Status — quick spend check
 
 ```bash
 tokenclaw status                    # $18.32 / $50.00 (37%) | 12 sessions | opus-4-6
 tokenclaw status --oneliner         # [tokenclaw] $18.32/$50 (37%)
-tokenclaw status --json             # full state as JSON
+tokenclaw status --json             # structured output for scripts
 ```
 
-Reads from `~/.tokenclaw/state.json` — updated on every scan, reads in <10ms. Falls back to a live scan if state is stale (>2h).
-
----
-
-## Baseline — see your spending patterns
-
-```bash
-tokenclaw baseline
-```
-
-Shows per-day-of-week spending patterns (median, P95) from your history. **API-billed tools only** — subscription tools (Claude Code, Cursor) are excluded since their cost is fixed and can't spike your bill. Needs at least 7 days of data.
-
-```
-Day         Median    P95       Today
-Mon         $32.40    $67.10
-Tue         $28.50    $55.20    $41.00 <- today (+44%)
-...
-
-By tool:
-Claude Code  $24.50/day median
-OpenClaw     $8.20/day median
-```
-
-After 14 days, anomaly detection replaces the hardcoded spike multiplier with P95-based thresholds tuned to your actual patterns.
-
----
-
-## Sessions — find expensive outliers
-
-```bash
-tokenclaw list sessions
-```
-
-Shows top 10 most expensive sessions sorted by cost. Sessions >3x your median are flagged.
-
----
-
-## Digest — daily Slack summary
-
-```bash
-tokenclaw digest                    # build and send yesterday's digest
-tokenclaw digest --install          # schedule at 9 AM daily via launchd
-tokenclaw digest --uninstall        # remove schedule
-```
-
-Sends a Slack digest with yesterday's spend, weekly totals, top tool/model, 7-day average, and baseline context (after 14 days of history).
+Instant read (<10ms). Updated every time you run `view`, `alert --check`, or `alert --watch`.
 
 ---
 
 ## Claude Code hook — see cost after every turn
+
+```bash
+tokenclaw hook install
+```
+
+After each conversation turn, you'll see: `[tokenclaw] $18.32/$50 (37%)`
+
+To remove: `tokenclaw hook uninstall`
+
+<details>
+<summary>Manual setup (if the command doesn't work)</summary>
 
 Add to your `~/.claude/settings.json`:
 
@@ -196,17 +149,15 @@ Add to your `~/.claude/settings.json`:
 }
 ```
 
-After each conversation turn, you'll see: `[tokenclaw] $18.32/$50 (37%)`
+Uses `Stop` (fires once per turn), not `PostToolUse` (fires per tool call, would spam 10-30x per turn).
 
-Or if `tokenclaw` is on your PATH: `tokenclaw hook install` / `tokenclaw hook uninstall`
-
-> **NOTE:** Uses `Stop` (fires once per turn), NOT `PostToolUse` (fires per tool call — would spam 10-30x per turn).
+</details>
 
 ---
 
 ## Cap — block requests when spend crosses a dollar amount
 
-Requires the proxy. Per-key only.
+Caps actually stop API requests. Requires running the proxy so tokenclaw can sit between your agent and the API.
 
 ### Start the proxy
 
@@ -214,12 +165,14 @@ Requires the proxy. Per-key only.
 tokenclaw proxy
 ```
 
-Point your agent at it:
+Then point your agent at it instead of the real API:
 
 ```bash
 ANTHROPIC_BASE_URL=http://localhost:4040 claude
 OPENAI_BASE_URL=http://localhost:4040 your-agent
 ```
+
+The proxy passes requests through, counts tokens, and blocks when a cap is hit.
 
 ### Set a cap
 
@@ -229,39 +182,73 @@ tokenclaw cap --key sk-abc --weekly 500              # block at $500/week
 tokenclaw cap --key sk-abc --monthly 2000            # block at $2000/month
 ```
 
-Auto-warns at 80% of the cap. At 100%, the proxy returns 429 and the request is stopped.
-
-### View caps
+Auto-warns at 80% of the cap. At 100%, the proxy returns 429 and the request is stopped. Caps are per-key — you need to specify which API key prefix to cap.
 
 ```bash
 tokenclaw cap                               # show all active caps
-```
-
-### Cap log
-
-```bash
-tokenclaw cap --log                         # when caps blocked requests, which keys
-```
-
-### Clear caps
-
-```bash
-tokenclaw cap --clear --key sk-abc          # remove cap on a key
+tokenclaw cap --log                         # when caps blocked requests
+tokenclaw cap --clear --key sk-abc          # remove a cap
 ```
 
 <p align="center">
   <img src="docs/tokenclaw-proxy.jpg" alt="tokenclaw crab directing traffic between Anthropic and OpenAI" width="600">
 </p>
 
-Auto-detects provider: `/v1/messages` → Anthropic, `/v1/chat/completions` → OpenAI (also Groq, Together, Fireworks).
+Auto-detects provider: `/v1/messages` -> Anthropic, `/v1/chat/completions` -> OpenAI (also Groq, Together, Fireworks).
+
+Per-key alerts also work through the proxy:
+
+```bash
+tokenclaw alert --key sk-abc --daily 10     # alert (not block) at $10/day on this key
+```
 
 ---
 
-## MCP Server — let agents check their budget
+## More features
 
-AI agents can self-check their spend via the Model Context Protocol (MCP). The server exposes three tools over stdio.
+### Velocity alert
 
-### Install
+```bash
+tokenclaw alert --velocity 0.50     # alert when burning >$0.50/min sustained
+```
+
+Catches runaway agents by their spend *rate* over a 30-minute window. Requires the proxy to be running.
+
+### Baseline — spending patterns
+
+```bash
+tokenclaw baseline
+```
+
+After 7+ days of data, shows your per-day-of-week spending patterns (median, P95). After 14 days, anomaly detection kicks in and replaces the default spike threshold with one tuned to your actual patterns. API-billed tools only.
+
+### Session outliers
+
+```bash
+tokenclaw list sessions
+```
+
+Top 10 most expensive sessions sorted by cost. Sessions over 3x your median are highlighted in red.
+
+### Daily digest
+
+```bash
+tokenclaw digest                    # build and send yesterday's summary to Slack
+tokenclaw digest --install          # schedule at 9 AM daily (macOS launchd)
+```
+
+### MCP server — let AI agents check their own budget
+
+If you use Claude Code, you can give it access to your spend data. When the agent sees it's burning through budget, it can switch to a cheaper model or ask before continuing.
+
+```bash
+tokenclaw mcp install
+```
+
+This adds a local server that Claude Code can query. Three tools: `get_budget_status` (how much have I spent today?), `get_session_cost` (how much did this session cost?), `estimate_cost` (how much would this model call cost?).
+
+<details>
+<summary>Manual setup</summary>
 
 Add to your `~/.claude/settings.json`:
 
@@ -276,21 +263,12 @@ Add to your `~/.claude/settings.json`:
 }
 ```
 
-Or if `tokenclaw` is on your PATH: `tokenclaw mcp install`
+</details>
 
-To remove: delete the `tokenclaw` key from `mcpServers`, or `tokenclaw mcp uninstall`
+<details>
+<summary>Make agents budget-aware</summary>
 
-### Tools
-
-| Tool | What it does |
-|---|---|
-| `get_budget_status` | Returns today's spend, daily/weekly thresholds, remaining budget, percentage used, session count. No parameters. |
-| `get_session_cost` | Returns cost, token count, model, and duration for a session. Optional `project_path` parameter — defaults to most recent session. |
-| `estimate_cost` | Estimates cost for a model call. Parameters: `model`, `input_tokens`, `output_tokens`, optional `cache_read_tokens` and `cache_write_tokens`. |
-
-### Budget-aware CLAUDE.md snippet
-
-Add to your project's `CLAUDE.md` to make agents budget-conscious:
+Add to your project's `CLAUDE.md`:
 
 ```markdown
 ## Cost awareness
@@ -300,6 +278,8 @@ Before starting expensive operations (large refactors, multi-file changes), chec
 - If over 80%, mention it and ask before proceeding
 - Use `estimate_cost` to preview cost of large context windows
 ```
+
+</details>
 
 ---
 
