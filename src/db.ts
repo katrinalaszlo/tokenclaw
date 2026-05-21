@@ -135,16 +135,19 @@ export function getCostSnapshots(
     .all(...params) as CostSnapshotRow[];
 }
 
-export function getTodaySpend(tool?: string): number {
+export function getTodaySpend(options?: {
+  tool?: string;
+  date?: string;
+}): number {
   const database = getDb();
-  const today = new Date().toISOString().split("T")[0]!;
+  const targetDate = options?.date ?? new Date().toISOString().split("T")[0]!;
 
-  if (tool) {
+  if (options?.tool) {
     const row = database
       .prepare(
         `SELECT COALESCE(SUM(amount_usd), 0) as total FROM cost_snapshots WHERE date = ? AND tool = ?`,
       )
-      .get(today, tool) as { total: number };
+      .get(targetDate, options.tool) as { total: number };
     return row.total;
   }
 
@@ -152,7 +155,7 @@ export function getTodaySpend(tool?: string): number {
     .prepare(
       `SELECT COALESCE(SUM(amount_usd), 0) as total FROM cost_snapshots WHERE date = ?`,
     )
-    .get(today) as { total: number };
+    .get(targetDate) as { total: number };
   return row.total;
 }
 
@@ -295,6 +298,19 @@ export function hasProxyData(): boolean {
     .prepare(`SELECT COUNT(*) as count FROM proxy_requests`)
     .get() as { count: number };
   return row.count > 0;
+}
+
+export function getRecentVelocity(minutes: number): number {
+  const database = getDb();
+  const since = new Date(Date.now() - minutes * 60 * 1000).toISOString();
+  const row = database
+    .prepare(
+      `SELECT COALESCE(SUM(cost_usd), 0) as total
+       FROM proxy_requests
+       WHERE timestamp >= ?`,
+    )
+    .get(since) as { total: number };
+  return minutes > 0 ? row.total / minutes : 0;
 }
 
 export function closeDb(): void {

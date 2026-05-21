@@ -27,6 +27,7 @@ export interface AccConfig {
     daily: number;
     weekly: number;
     alert_on_spike: boolean;
+    velocity?: number;
   };
   alerts: {
     slack_webhook: string;

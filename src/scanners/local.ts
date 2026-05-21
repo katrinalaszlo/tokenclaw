@@ -17,6 +17,14 @@ export type DailyCost = {
   sessions: number;
 };
 
+export type SessionDetail = {
+  path: string;
+  cost: number;
+  tokens: number;
+  duration_minutes: number;
+  model: string;
+};
+
 export type ToolScanResult = {
   tool: string;
   sessions: number;
@@ -28,6 +36,7 @@ export type ToolScanResult = {
   modelUsage: Record<string, ModelUsage>;
   projects: { name: string; cost: number; sessions: number; tokens: number }[];
   dailyCosts: DailyCost[];
+  sessions_detail: SessionDetail[];
   billingType: "subscription" | "api";
   planName?: string;
   planCost?: number;
@@ -104,6 +113,8 @@ export async function parseJsonlFile(filePath: string): Promise<{
   costUSD: number;
   modelUsage: Record<string, ModelUsage>;
   dateCosts: Record<string, number>;
+  firstTimestamp: string | undefined;
+  lastTimestamp: string | undefined;
 }> {
   let content: string;
   try {
@@ -117,6 +128,8 @@ export async function parseJsonlFile(filePath: string): Promise<{
       costUSD: 0,
       modelUsage: {},
       dateCosts: {},
+      firstTimestamp: undefined,
+      lastTimestamp: undefined,
     };
   }
 
@@ -127,6 +140,8 @@ export async function parseJsonlFile(filePath: string): Promise<{
   >();
   let anonCounter = 0;
   const fallbackDate = new Date().toISOString().split("T")[0]!;
+  let firstTimestamp: string | undefined;
+  let lastTimestamp: string | undefined;
 
   for (const line of lines) {
     let parsed: Record<string, unknown>;
@@ -148,6 +163,11 @@ export async function parseJsonlFile(filePath: string): Promise<{
 
     const ts = (parsed.timestamp ?? parsed.ts) as string | undefined;
     const date = ts ? ts.split("T")[0]! : fallbackDate;
+
+    if (ts) {
+      if (!firstTimestamp || ts < firstTimestamp) firstTimestamp = ts;
+      if (!lastTimestamp || ts > lastTimestamp) lastTimestamp = ts;
+    }
 
     const msgId = msg.responseId ?? msg.id ?? `anon-${anonCounter++}`;
     lastUsageByMsg.set(msgId, {
@@ -206,6 +226,8 @@ export async function parseJsonlFile(filePath: string): Promise<{
     costUSD: totalCost,
     modelUsage,
     dateCosts,
+    firstTimestamp,
+    lastTimestamp,
   };
 }
 
@@ -259,6 +281,7 @@ export async function scanLocalTools(): Promise<{
       { cost: number; sessions: number; tokens: number }
     >();
     const dailyMap = new Map<string, { cost: number; sessions: number }>();
+    const sessionsDetail: SessionDetail[] = [];
 
     for (const file of allFiles) {
       const result = await parseJsonlFile(file);
@@ -267,6 +290,25 @@ export async function scanLocalTools(): Promise<{
       totalCacheRead += result.cacheReadTokens;
       totalCacheCreation += result.cacheCreationTokens;
       totalCost += result.costUSD;
+
+      // Per-session detail
+      let durationMinutes = 0;
+      if (result.firstTimestamp && result.lastTimestamp) {
+        const first = new Date(result.firstTimestamp).getTime();
+        const last = new Date(result.lastTimestamp).getTime();
+        durationMinutes = Math.max(0, Math.round((last - first) / 60000));
+      }
+      const topModel =
+        Object.entries(result.modelUsage).sort(
+          ([, a], [, b]) => b.costUSD - a.costUSD,
+        )[0]?.[0] || "unknown";
+      sessionsDetail.push({
+        path: file,
+        cost: result.costUSD,
+        tokens: result.inputTokens + result.outputTokens,
+        duration_minutes: durationMinutes,
+        model: topModel,
+      });
 
       for (const [date, cost] of Object.entries(result.dateCosts)) {
         const dayEntry = dailyMap.get(date) || { cost: 0, sessions: 0 };
@@ -330,6 +372,7 @@ export async function scanLocalTools(): Promise<{
       modelUsage,
       projects,
       dailyCosts,
+      sessions_detail: sessionsDetail,
       ...billing,
     });
   }

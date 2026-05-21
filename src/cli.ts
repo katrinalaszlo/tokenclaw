@@ -5,7 +5,9 @@ import chalk from "chalk";
 import { createInterface } from "node:readline/promises";
 import { stdin, stdout } from "node:process";
 
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import { scanLocalTools } from "./scanners/local.js";
 import {
   evaluateAlerts,
@@ -13,7 +15,7 @@ import {
   type CostSnapshot as EngineCostSnapshot,
   type AlertHistoryEntry,
 } from "./alerts/engine.js";
-import { sendSlackAlert } from "./alerts/slack.js";
+import { sendSlackAlert, sendSlackDigest } from "./alerts/slack.js";
 import {
   acknowledgeAlert,
   getAckState,
@@ -38,12 +40,14 @@ import {
   getKeyBreakdown,
   getSpendByKeyPrefix,
   hasProxyData,
+  getRecentVelocity,
 } from "./db.js";
 import { startProxy } from "./proxy/server.js";
 import {
   installMonitoring,
   uninstallMonitoring,
   isMonitoringInstalled,
+  installDigest,
   isMac,
 } from "./launchd.js";
 import { getBudgetWindowStart } from "./proxy/parse.js";
@@ -367,6 +371,38 @@ async function runWatch(once: boolean): Promise<void> {
       actions.push(...ruleActions);
     }
 
+    // Velocity alerting ($/min over last 30 minutes)
+    if (config.thresholds.velocity && config.thresholds.velocity > 0) {
+      const velocity = getRecentVelocity(30);
+      if (velocity > 0) {
+        const velocityRule: AlertRule = {
+          id: "velocity-threshold",
+          name: "Spend velocity",
+          threshold_usd: config.thresholds.velocity,
+          period: "daily",
+          type: "velocity",
+          escalation: [
+            { above: config.thresholds.velocity, frequency: "hourly" },
+          ],
+        };
+        const velocitySnapshot: EngineCostSnapshot[] = [
+          {
+            provider: "proxy",
+            tool: "all",
+            date: todayISO(),
+            amount_usd: velocity,
+          },
+        ];
+        const velocityActions = evaluateAlerts(
+          velocitySnapshot,
+          [velocityRule],
+          history,
+          ackState,
+        );
+        actions.push(...velocityActions);
+      }
+    }
+
     if (actions.length === 0) {
       console.log(chalk.green("No alerts."));
       return;
@@ -515,6 +551,11 @@ async function runList(view: string): Promise<void> {
   const { found } = await scanLocalTools();
   persistScanToDB(found);
 
+  if (view === "sessions") {
+    listSessions(found);
+    return;
+  }
+
   const apiOnly = found.filter((t) => t.billingType === "api");
 
   if (apiOnly.length === 0) {
@@ -546,7 +587,9 @@ async function runList(view: string): Promise<void> {
     default:
       console.log(chalk.red(`Unknown view: ${view}`));
       console.log(
-        chalk.dim("Available: models, projects, trends, usage, efficiency"),
+        chalk.dim(
+          "Available: models, projects, trends, usage, efficiency, sessions",
+        ),
       );
   }
 }
@@ -753,6 +796,59 @@ function listEfficiency(
       );
     }
     console.log();
+  }
+}
+
+function listSessions(
+  found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
+): void {
+  const allSessions = found.flatMap((t) =>
+    t.sessions_detail.map((s) => ({ ...s, tool: t.tool })),
+  );
+
+  // Filter to sessions with cost > 0 for meaningful stats
+  const nonZero = allSessions.filter((s) => s.cost > 0);
+
+  if (nonZero.length === 0) {
+    console.log(chalk.dim("No session data found."));
+    return;
+  }
+
+  // Median cost (of non-zero sessions)
+  const sorted = [...nonZero].sort((a, b) => a.cost - b.cost);
+  const mid = Math.floor(sorted.length / 2);
+  const median =
+    sorted.length % 2 === 0
+      ? (sorted[mid - 1]!.cost + sorted[mid]!.cost) / 2
+      : sorted[mid]!.cost;
+
+  const top10 = [...nonZero].sort((a, b) => b.cost - a.cost).slice(0, 10);
+  const outlierThreshold = median * 3;
+
+  console.log(chalk.bold("Most expensive sessions\n"));
+  console.log(
+    chalk.dim(
+      `  ${nonZero.length} sessions total, median: ${fmtUSD(median)}\n`,
+    ),
+  );
+
+  for (const s of top10) {
+    const projName = shortProject(
+      s.path
+        .split("/")
+        .filter((p) => p)
+        .slice(-2)
+        .join("/")
+        .replace(".jsonl", ""),
+    );
+    const dur = s.duration_minutes > 0 ? `${s.duration_minutes}min` : "<1min";
+    const costStr = fmtUSD(s.cost);
+    const line = `${costStr.padStart(8)}  ${projName.padEnd(25)} ${shortModel(s.model).padEnd(14)} ${dur.padStart(7)}`;
+    if (s.cost > outlierThreshold) {
+      console.log(`  ${chalk.red(line)}  ${chalk.red("(>3x median)")}`);
+    } else {
+      console.log(`  ${line}`);
+    }
   }
 }
 
@@ -964,6 +1060,17 @@ program
     );
   });
 
+// ── LIST ──
+
+program
+  .command("list <view>")
+  .description(
+    "Detailed views (models, projects, trends, usage, efficiency, sessions)",
+  )
+  .action(async (view: string) => {
+    await runList(view);
+  });
+
 // ── ALERT ──
 
 function parseLimit(opts: {
@@ -983,6 +1090,10 @@ program
   .option("--daily <amount>", "Alert at $X/day")
   .option("--weekly <amount>", "Alert at $X/week")
   .option("--monthly <amount>", "Alert at $X/month")
+  .option(
+    "--velocity <amount>",
+    "Alert when burn rate exceeds $X/min (requires proxy)",
+  )
   .option("--key <prefix>", "Per-key alert (requires proxy)")
   .option("--setup", "Interactive setup (connect Slack)")
   .option("--watch", "Start continuous monitoring in foreground")
@@ -995,6 +1106,7 @@ program
       daily?: string;
       weekly?: string;
       monthly?: string;
+      velocity?: string;
       key?: string;
       setup?: boolean;
       watch?: boolean;
@@ -1069,6 +1181,21 @@ program
       }
       if (opts.ack) {
         runAck();
+        return;
+      }
+
+      if (opts.velocity) {
+        const config = loadConfig();
+        config.thresholds.velocity = Number(opts.velocity);
+        saveConfig(config);
+        console.log(
+          chalk.green(
+            `Velocity alert: Slack when burn rate > $${opts.velocity}/min`,
+          ),
+        );
+        console.log(
+          chalk.dim("Measured over 30-minute window from proxy data."),
+        );
         return;
       }
 
@@ -1353,6 +1480,211 @@ configCmd
     config.alerts.slack_webhook = webhook;
     saveConfig(config);
     console.log(chalk.green("Slack webhook saved."));
+  });
+
+// ── HOOK ──
+
+const HOOK_COMMAND = "tokenclaw status --oneliner 2>/dev/null || true";
+
+const hookCmd = program
+  .command("hook")
+  .description("Claude Code hook integration");
+
+hookCmd
+  .command("install")
+  .description("Add tokenclaw Stop hook to Claude Code settings")
+  .action(() => {
+    const claudeDir = join(homedir(), ".claude");
+    const settingsPath = join(claudeDir, "settings.json");
+
+    if (!existsSync(claudeDir)) {
+      mkdirSync(claudeDir, { recursive: true });
+    }
+
+    let settings: Record<string, unknown> = {};
+    if (existsSync(settingsPath)) {
+      try {
+        const raw = readFileSync(settingsPath, "utf-8");
+        settings = JSON.parse(raw || "{}") as Record<string, unknown>;
+      } catch {
+        settings = {};
+      }
+    }
+
+    // Navigate into hooks.Stop
+    if (!settings.hooks || typeof settings.hooks !== "object") {
+      settings.hooks = {};
+    }
+    const hooks = settings.hooks as Record<string, unknown>;
+
+    if (!Array.isArray(hooks.Stop)) {
+      hooks.Stop = [];
+    }
+    const stopHooks = hooks.Stop as Array<Record<string, unknown>>;
+
+    // Check if already installed
+    const alreadyInstalled = stopHooks.some((group) => {
+      const inner = group.hooks;
+      if (!Array.isArray(inner)) return false;
+      return inner.some(
+        (h: Record<string, unknown>) =>
+          typeof h.command === "string" && h.command.includes("tokenclaw"),
+      );
+    });
+
+    if (alreadyInstalled) {
+      console.log(chalk.dim("Hook already installed."));
+      return;
+    }
+
+    stopHooks.push({
+      matcher: "",
+      hooks: [
+        {
+          type: "command",
+          command: HOOK_COMMAND,
+        },
+      ],
+    });
+
+    writeFileSync(
+      settingsPath,
+      JSON.stringify(settings, null, 2) + "\n",
+      "utf-8",
+    );
+    console.log(chalk.green("Installed tokenclaw Stop hook."));
+    console.log(chalk.dim(`  ${settingsPath}`));
+    console.log(
+      chalk.dim(`  After each turn you'll see: [tokenclaw] $18.32/$50 (37%)`),
+    );
+  });
+
+hookCmd
+  .command("uninstall")
+  .description("Remove tokenclaw Stop hook from Claude Code settings")
+  .action(() => {
+    const settingsPath = join(homedir(), ".claude", "settings.json");
+
+    if (!existsSync(settingsPath)) {
+      console.log(chalk.dim("No Claude Code settings found."));
+      return;
+    }
+
+    let settings: Record<string, unknown>;
+    try {
+      const raw = readFileSync(settingsPath, "utf-8");
+      settings = JSON.parse(raw || "{}") as Record<string, unknown>;
+    } catch {
+      console.log(chalk.dim("Could not parse settings.json."));
+      return;
+    }
+
+    const hooks = settings.hooks as Record<string, unknown> | undefined;
+    if (!hooks || !Array.isArray(hooks.Stop)) {
+      console.log(chalk.dim("No tokenclaw hook found."));
+      return;
+    }
+
+    const stopHooks = hooks.Stop as Array<Record<string, unknown>>;
+    const before = stopHooks.length;
+
+    hooks.Stop = stopHooks.filter((group) => {
+      const inner = group.hooks;
+      if (!Array.isArray(inner)) return true;
+      return !inner.some(
+        (h: Record<string, unknown>) =>
+          typeof h.command === "string" && h.command.includes("tokenclaw"),
+      );
+    });
+
+    const after = (hooks.Stop as unknown[]).length;
+    const removed = before - after;
+
+    if (removed === 0) {
+      console.log(chalk.dim("No tokenclaw hook found."));
+      return;
+    }
+
+    writeFileSync(
+      settingsPath,
+      JSON.stringify(settings, null, 2) + "\n",
+      "utf-8",
+    );
+    console.log(chalk.green(`Removed ${removed} tokenclaw hook(s).`));
+    console.log(chalk.dim(`  ${settingsPath}`));
+  });
+
+// ── DIGEST ──
+
+program
+  .command("digest")
+  .description("Send daily spend digest to Slack")
+  .option("--install", "Schedule daily digest at 9 AM via launchd")
+  .option("--uninstall", "Remove digest schedule")
+  .action(async (opts: { install?: boolean; uninstall?: boolean }) => {
+    if (opts.install) {
+      const result = installDigest();
+      console.log(
+        result.ok ? chalk.green(result.message) : chalk.yellow(result.message),
+      );
+      return;
+    }
+
+    if (opts.uninstall) {
+      const { uninstallDigest } = await import("./launchd.js");
+      const result = uninstallDigest();
+      console.log(
+        result.ok ? chalk.green(result.message) : chalk.yellow(result.message),
+      );
+      return;
+    }
+
+    const { buildDigest } = await import("./digest.js");
+    const digest = buildDigest();
+
+    console.log(chalk.bold("tokenclaw daily digest\n"));
+    console.log(
+      `Yesterday: ${chalk.cyan("$" + digest.yesterday_usd.toFixed(2))} across ${digest.yesterday_sessions} sessions`,
+    );
+    const weekPct =
+      digest.week_threshold > 0
+        ? Math.round((digest.week_usd / digest.week_threshold) * 100)
+        : 0;
+    console.log(
+      `This week: ${chalk.cyan("$" + digest.week_usd.toFixed(2))} / $${digest.week_threshold.toFixed(2)} (${weekPct}%)`,
+    );
+    console.log(
+      `Top tool:  ${digest.top_tool.name} (${chalk.cyan("$" + digest.top_tool.cost.toFixed(2))})`,
+    );
+    console.log(
+      `Top model: ${digest.top_model.name} (${chalk.cyan("$" + digest.top_model.cost.toFixed(2))})`,
+    );
+    console.log(
+      `Avg daily: ${chalk.cyan("$" + digest.avg_daily.toFixed(2))} (last 7 days)`,
+    );
+
+    if (digest.avg_daily > 0 && digest.yesterday_usd > digest.avg_daily) {
+      const pctAbove = Math.round(
+        ((digest.yesterday_usd - digest.avg_daily) / digest.avg_daily) * 100,
+      );
+      console.log(chalk.yellow(`↑ ${pctAbove}% above your 7-day average`));
+    }
+
+    const config = loadConfig();
+    if (config.alerts.slack_webhook) {
+      try {
+        await sendSlackDigest(config.alerts.slack_webhook, digest);
+        console.log(chalk.dim("\nSlack digest sent."));
+      } catch (err) {
+        console.error(chalk.red(`\nSlack send failed: ${err}`));
+      }
+    } else {
+      console.log(
+        chalk.dim(
+          "\nNo Slack webhook configured. Run: tokenclaw config slack <url>",
+        ),
+      );
+    }
   });
 
 program.parse();

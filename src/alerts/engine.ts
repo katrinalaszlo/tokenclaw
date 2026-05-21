@@ -19,6 +19,7 @@ export interface AlertRule {
   threshold_usd: number;
   period: "daily" | "weekly" | "monthly";
   escalation: EscalationTier[];
+  type?: "threshold" | "velocity";
 }
 
 export interface EscalationTier {

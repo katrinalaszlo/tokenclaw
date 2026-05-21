@@ -103,6 +103,48 @@ tokenclaw alert --clear --key sk-abc        # remove alert on a specific key
 
 ---
 
+## Claude Code hook — see cost after every turn
+
+```bash
+tokenclaw hook install
+```
+
+Adds a `Stop` hook to `~/.claude/settings.json`. After each conversation turn, you'll see:
+
+```
+[tokenclaw] $18.32/$50 (37%)
+```
+
+To remove:
+
+```bash
+tokenclaw hook uninstall
+```
+
+Or add manually to your `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tokenclaw status --oneliner 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+> **NOTE:** Uses `Stop` (fires once per turn), NOT `PostToolUse` (fires per tool call — would spam 10-30x per turn).
+
+---
+
 ## Cap — block requests when spend crosses a dollar amount
 
 Requires the proxy. Per-key only.

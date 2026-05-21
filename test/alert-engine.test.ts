@@ -324,3 +324,52 @@ describe("evaluateAlerts multiple rules", () => {
     assert.deepEqual(ruleIds, ["rule-1", "rule-2"]);
   });
 });
+
+// ── Velocity rules ──
+
+describe("evaluateAlerts velocity", () => {
+  it("fires when velocity exceeds threshold", () => {
+    const rule: AlertRule = {
+      id: "velocity-threshold",
+      name: "Spend velocity",
+      threshold_usd: 0.5,
+      period: "daily",
+      type: "velocity",
+      escalation: [{ above: 0.5, frequency: "hourly" }],
+    };
+    // $0.85/min passed as single snapshot
+    const snapshots: CostSnapshot[] = [
+      {
+        provider: "proxy",
+        tool: "all",
+        date: "2026-05-22",
+        amount_usd: 0.85,
+      },
+    ];
+    const actions = evaluateAlerts(snapshots, [rule], [], {});
+    assert.equal(actions.length, 1);
+    assert.equal(actions[0]!.amount, 0.85);
+    assert.equal(actions[0]!.threshold, 0.5);
+  });
+
+  it("does not fire when velocity is below threshold", () => {
+    const rule: AlertRule = {
+      id: "velocity-threshold",
+      name: "Spend velocity",
+      threshold_usd: 0.5,
+      period: "daily",
+      type: "velocity",
+      escalation: [{ above: 0.5, frequency: "hourly" }],
+    };
+    const snapshots: CostSnapshot[] = [
+      {
+        provider: "proxy",
+        tool: "all",
+        date: "2026-05-22",
+        amount_usd: 0.3,
+      },
+    ];
+    const actions = evaluateAlerts(snapshots, [rule], [], {});
+    assert.equal(actions.length, 0);
+  });
+});

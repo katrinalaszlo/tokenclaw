@@ -267,3 +267,50 @@ describe("parseJsonlFile message deduplication", () => {
     assert.equal(result.outputTokens, 80);
   });
 });
+
+// ── parseJsonlFile — timestamp extraction ──
+
+describe("parseJsonlFile timestamps", () => {
+  it("returns firstTimestamp and lastTimestamp from valid fixture", async () => {
+    const fixturePath = join(fixturesDir, "valid-session.jsonl");
+    const result = await parseJsonlFile(fixturePath);
+    assert.equal(result.firstTimestamp, "2026-05-20T10:00:00Z");
+    assert.equal(result.lastTimestamp, "2026-05-22T09:15:00Z");
+  });
+
+  it("returns undefined timestamps for empty file", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tokenclaw-ts-"));
+    const emptyFile = join(dir, "empty.jsonl");
+    writeFileSync(emptyFile, "");
+    const result = await parseJsonlFile(emptyFile);
+    assert.equal(result.firstTimestamp, undefined);
+    assert.equal(result.lastTimestamp, undefined);
+    rmSync(dir, { recursive: true, force: true });
+  });
+
+  it("returns undefined timestamps for nonexistent file", async () => {
+    const result = await parseJsonlFile("/tmp/no-such-file-timestamps.jsonl");
+    assert.equal(result.firstTimestamp, undefined);
+    assert.equal(result.lastTimestamp, undefined);
+  });
+
+  it("handles single-entry file (first === last)", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "tokenclaw-single-"));
+    const singleFile = join(dir, "single.jsonl");
+    writeFileSync(
+      singleFile,
+      JSON.stringify({
+        timestamp: "2026-05-22T12:00:00Z",
+        message: {
+          id: "msg_only",
+          model: "claude-sonnet-4-6",
+          usage: { input_tokens: 100, output_tokens: 50 },
+        },
+      }) + "\n",
+    );
+    const result = await parseJsonlFile(singleFile);
+    assert.equal(result.firstTimestamp, "2026-05-22T12:00:00Z");
+    assert.equal(result.lastTimestamp, "2026-05-22T12:00:00Z");
+    rmSync(dir, { recursive: true, force: true });
+  });
+});
