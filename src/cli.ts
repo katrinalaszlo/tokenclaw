@@ -165,24 +165,25 @@ function scanToEngineSnapshotsForPeriod(
     });
 }
 
-/** Save scan results to DB as cost snapshots. */
+/** Save scan results to DB as cost snapshots (per date per model). */
 function persistScanToDB(
   found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
 ): void {
-  const date = todayISO();
   for (const tool of found) {
-    for (const [model, usage] of Object.entries(tool.modelUsage)) {
-      insertCostSnapshot(
-        tool.tool,
-        date,
-        usage.costUSD,
-        {
-          input: usage.inputTokens,
-          output: usage.outputTokens,
-          cacheRead: usage.cacheReadTokens,
-        },
-        model,
-      );
+    for (const [model, dates] of Object.entries(tool.modelDateCosts)) {
+      for (const [date, mdc] of Object.entries(dates)) {
+        insertCostSnapshot(
+          tool.tool,
+          date,
+          mdc.cost,
+          {
+            input: mdc.input,
+            output: mdc.output,
+            cacheRead: mdc.cacheRead,
+          },
+          model,
+        );
+      }
     }
   }
 }

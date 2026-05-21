@@ -25,6 +25,13 @@ export type SessionDetail = {
   model: string;
 };
 
+export type ModelDateCost = {
+  cost: number;
+  input: number;
+  output: number;
+  cacheRead: number;
+};
+
 export type ToolScanResult = {
   tool: string;
   sessions: number;
@@ -34,6 +41,7 @@ export type ToolScanResult = {
   cacheReadTokens: number;
   cacheCreationTokens: number;
   modelUsage: Record<string, ModelUsage>;
+  modelDateCosts: Record<string, Record<string, ModelDateCost>>;
   projects: { name: string; cost: number; sessions: number; tokens: number }[];
   dailyCosts: DailyCost[];
   sessions_detail: SessionDetail[];
@@ -179,6 +187,13 @@ export async function parseJsonlFile(filePath: string): Promise<{
 
   const modelUsage: Record<string, ModelUsage> = {};
   const dateCosts: Record<string, number> = {};
+  const modelDateCosts: Record<
+    string,
+    Record<
+      string,
+      { cost: number; input: number; output: number; cacheRead: number }
+    >
+  > = {};
   let totalInput = 0,
     totalOutput = 0,
     totalCacheRead = 0,
@@ -216,6 +231,19 @@ export async function parseJsonlFile(filePath: string): Promise<{
     modelUsage[model].costUSD += cost;
     totalCost += cost;
     dateCosts[date] = (dateCosts[date] || 0) + cost;
+
+    if (!modelDateCosts[model]) modelDateCosts[model] = {};
+    const mdc = modelDateCosts[model][date] || {
+      cost: 0,
+      input: 0,
+      output: 0,
+      cacheRead: 0,
+    };
+    mdc.cost += cost;
+    mdc.input += input;
+    mdc.output += output;
+    mdc.cacheRead += cacheRead;
+    modelDateCosts[model][date] = mdc;
   }
 
   return {
@@ -226,6 +254,7 @@ export async function parseJsonlFile(filePath: string): Promise<{
     costUSD: totalCost,
     modelUsage,
     dateCosts,
+    modelDateCosts,
     firstTimestamp,
     lastTimestamp,
   };
@@ -274,6 +303,10 @@ export async function scanLocalTools(): Promise<{
     }
 
     const modelUsage: Record<string, ModelUsage> = {};
+    const toolModelDateCosts: Record<
+      string,
+      Record<string, ModelDateCost>
+    > = {};
     let totalInput = 0,
       totalOutput = 0,
       totalCacheRead = 0,
@@ -337,6 +370,23 @@ export async function scanLocalTools(): Promise<{
         modelUsage[model].costUSD += usage.costUSD;
       }
 
+      for (const [model, dates] of Object.entries(result.modelDateCosts)) {
+        if (!toolModelDateCosts[model]) toolModelDateCosts[model] = {};
+        for (const [date, mdc] of Object.entries(dates)) {
+          const existing = toolModelDateCosts[model][date] || {
+            cost: 0,
+            input: 0,
+            output: 0,
+            cacheRead: 0,
+          };
+          existing.cost += mdc.cost;
+          existing.input += mdc.input;
+          existing.output += mdc.output;
+          existing.cacheRead += mdc.cacheRead;
+          toolModelDateCosts[model][date] = existing;
+        }
+      }
+
       const projName = projectNameFromPath(file, tool.name);
       const existing = projectMap.get(projName) || {
         cost: 0,
@@ -373,6 +423,7 @@ export async function scanLocalTools(): Promise<{
       cacheReadTokens: totalCacheRead,
       cacheCreationTokens: totalCacheCreation,
       modelUsage,
+      modelDateCosts: toolModelDateCosts,
       projects,
       dailyCosts,
       sessions_detail: sessionsDetail,

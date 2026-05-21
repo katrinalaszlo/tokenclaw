@@ -59,6 +59,24 @@ export function initDB(): Database.Database {
     );
   `);
 
+  // Migration: dedup cost_snapshots before adding unique index
+  const hasIndex = db
+    .prepare(
+      `SELECT 1 FROM sqlite_master WHERE type='index' AND name='idx_cost_snapshots_unique'`,
+    )
+    .get();
+  if (!hasIndex) {
+    db.exec(`
+      DELETE FROM cost_snapshots
+      WHERE id NOT IN (
+        SELECT MAX(id) FROM cost_snapshots
+        GROUP BY tool, date, COALESCE(model, '')
+      );
+      CREATE UNIQUE INDEX idx_cost_snapshots_unique
+        ON cost_snapshots(tool, date, COALESCE(model, ''));
+    `);
+  }
+
   return db;
 }
 
@@ -78,7 +96,13 @@ export function insertCostSnapshot(
   database
     .prepare(
       `INSERT INTO cost_snapshots (tool, date, amount_usd, input_tokens, output_tokens, cache_read_tokens, model, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT(tool, date, COALESCE(model, ''))
+       DO UPDATE SET amount_usd = excluded.amount_usd,
+                     input_tokens = excluded.input_tokens,
+                     output_tokens = excluded.output_tokens,
+                     cache_read_tokens = excluded.cache_read_tokens,
+                     created_at = excluded.created_at`,
     )
     .run(
       tool,
