@@ -143,7 +143,7 @@ describe("parseSSEUsage (openai)", () => {
     assert.equal(usage.cacheReadTokens, 0);
   });
 
-  it("parses OpenAI response with cached tokens", () => {
+  it("parses OpenAI response with cached tokens (subtracts from prompt_tokens)", () => {
     const fixture = [
       `data: {"id":"chatcmpl-xyz","model":"gpt-4.1","choices":[{"index":0,"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":100,"completion_tokens":50,"total_tokens":150,"prompt_tokens_details":{"cached_tokens":80}}}`,
       ``,
@@ -153,7 +153,8 @@ describe("parseSSEUsage (openai)", () => {
 
     const usage = parseSSEUsage(fixture, "openai");
     assert.equal(usage.model, "gpt-4.1");
-    assert.equal(usage.inputTokens, 100);
+    // prompt_tokens=100 includes cached_tokens=80, so inputTokens = 100 - 80
+    assert.equal(usage.inputTokens, 20);
     assert.equal(usage.outputTokens, 50);
     assert.equal(usage.cacheReadTokens, 80);
   });
@@ -184,6 +185,25 @@ describe("parseJsonUsage (openai)", () => {
     assert.equal(usage.model, "gpt-4o-mini");
     assert.equal(usage.inputTokens, 20);
     assert.equal(usage.outputTokens, 5);
+  });
+
+  it("subtracts cached_tokens from prompt_tokens in JSON response", () => {
+    const body = JSON.stringify({
+      id: "chatcmpl-cache",
+      model: "gpt-4o",
+      choices: [{ message: { content: "Hi" } }],
+      usage: {
+        prompt_tokens: 1136,
+        completion_tokens: 200,
+        total_tokens: 1336,
+        prompt_tokens_details: { cached_tokens: 1024 },
+      },
+    });
+
+    const usage = parseJsonUsage(body, "openai");
+    assert.equal(usage.inputTokens, 112); // 1136 - 1024
+    assert.equal(usage.outputTokens, 200);
+    assert.equal(usage.cacheReadTokens, 1024);
   });
 });
 
@@ -329,6 +349,39 @@ describe("parseBudgetString", () => {
     assert.throws(() => parseBudgetString("10/year"));
     assert.throws(() => parseBudgetString("abc"));
     assert.throws(() => parseBudgetString(""));
+  });
+});
+
+describe("Anthropic input_tokens excludes cache (no subtraction needed)", () => {
+  it("SSE: inputTokens unchanged when cache_read_input_tokens present", () => {
+    const fixture = [
+      `event: message_start`,
+      `data: {"type":"message_start","message":{"id":"msg_ant","type":"message","role":"assistant","model":"claude-sonnet-4-6","usage":{"input_tokens":100,"cache_creation_input_tokens":0,"cache_read_input_tokens":5000,"output_tokens":0}}}`,
+      ``,
+      `event: message_delta`,
+      `data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":50}}`,
+      ``,
+    ].join("\n");
+
+    const usage = parseSSEUsage(fixture, "anthropic");
+    // Anthropic's input_tokens already excludes cache — should stay 100
+    assert.equal(usage.inputTokens, 100);
+    assert.equal(usage.cacheReadTokens, 5000);
+    assert.equal(usage.outputTokens, 50);
+  });
+});
+
+describe("OpenAI cost with cache fix", () => {
+  it("charges cached tokens at cacheRead rate, not double-counted", () => {
+    // gpt-4o: input=2.5, output=10, cacheRead=1.25 per 1M tokens
+    // After fix: 100 prompt_tokens with 80 cached → inputTokens=20, cacheReadTokens=80
+    // Cost = (20 * 2.5 + 0 * 10 + 80 * 1.25) / 1_000_000
+    //      = (50 + 100) / 1_000_000 = 0.000150
+    const cost = estimateCost("gpt-4o", 20, 0, 80, 0);
+    assert.ok(
+      Math.abs(cost - 0.00015) < 0.000001,
+      `expected ~0.000150, got ${cost}`,
+    );
   });
 });
 

@@ -181,14 +181,15 @@ export function parseOpenAISSE(buffer: string): ParsedUsage {
     // OpenAI includes usage in the final chunk (when stream_options.include_usage is true)
     const usage = parsed.usage as Record<string, unknown> | undefined;
     if (usage) {
-      result.inputTokens = Number(usage.prompt_tokens) || 0;
       result.outputTokens = Number(usage.completion_tokens) || 0;
       const details = usage.prompt_tokens_details as
         | Record<string, number>
         | undefined;
-      if (details?.cached_tokens) {
-        result.cacheReadTokens = details.cached_tokens;
-      }
+      // OpenAI's prompt_tokens INCLUDES cached_tokens as a subset —
+      // subtract to avoid double-counting in cost calculation.
+      const cachedTokens = details?.cached_tokens || 0;
+      result.cacheReadTokens = cachedTokens;
+      result.inputTokens = (Number(usage.prompt_tokens) || 0) - cachedTokens;
     }
   }
 
@@ -209,14 +210,15 @@ export function parseOpenAIJson(body: string): ParsedUsage {
     if (parsed.model) result.model = String(parsed.model);
     const usage = parsed.usage as Record<string, unknown> | undefined;
     if (usage) {
-      result.inputTokens = Number(usage.prompt_tokens) || 0;
       result.outputTokens = Number(usage.completion_tokens) || 0;
       const details = usage.prompt_tokens_details as
         | Record<string, number>
         | undefined;
-      if (details?.cached_tokens) {
-        result.cacheReadTokens = details.cached_tokens;
-      }
+      // OpenAI's prompt_tokens INCLUDES cached_tokens as a subset —
+      // subtract to avoid double-counting in cost calculation.
+      const cachedTokens = details?.cached_tokens || 0;
+      result.cacheReadTokens = cachedTokens;
+      result.inputTokens = (Number(usage.prompt_tokens) || 0) - cachedTokens;
     }
   } catch {
     // fail-open on counting
