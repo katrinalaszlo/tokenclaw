@@ -99,6 +99,7 @@ export interface DigestData {
   top_tool: { name: string; cost: number };
   top_model: { name: string; cost: number };
   avg_daily: number;
+  baseline_context?: string;
 }
 
 export async function sendSlackDigest(
@@ -138,6 +139,10 @@ function formatDigestMessage(d: DigestData): string {
       ((d.yesterday_usd - d.avg_daily) / d.avg_daily) * 100,
     );
     lines.push(`↑ ${pctAbove}% above your 7-day average`);
+  }
+
+  if (d.baseline_context) {
+    lines.push(d.baseline_context);
   }
 
   return lines.join("\n");

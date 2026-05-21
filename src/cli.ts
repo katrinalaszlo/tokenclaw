@@ -42,6 +42,13 @@ import {
   hasProxyData,
   getRecentVelocity,
 } from "./db.js";
+import {
+  getHistoryDays,
+  getBaselineForDay,
+  isAnomaly,
+  getSpendContext,
+  getToolBaselines,
+} from "./baselines.js";
 import { startProxy } from "./proxy/server.js";
 import {
   installMonitoring,
@@ -400,6 +407,68 @@ async function runWatch(once: boolean): Promise<void> {
           ackState,
         );
         actions.push(...velocityActions);
+      }
+    }
+
+    // Baseline-based spike detection (replaces hardcoded SPIKE_MULTIPLIER when enough data)
+    if (getHistoryDays() >= 14) {
+      const todayDow = new Date().getDay();
+      const baseline = getBaselineForDay(todayDow);
+      const todayTotal = found
+        .filter((t) => t.billingType === "api")
+        .reduce((sum, t) => {
+          return (
+            sum +
+            t.dailyCosts
+              .filter((d) => d.date === todayISO())
+              .reduce((s, d) => s + d.cost, 0)
+          );
+        }, 0);
+
+      // Skip if acknowledged or already fired within 24h (respect ack + frequency)
+      const spikeAcked = isAcknowledged("daily-spike-baseline");
+      const recentSpikeFired = history.some(
+        (h) =>
+          h.rule_id === "daily-spike-baseline" &&
+          h.action === "fired" &&
+          Date.now() - new Date(h.timestamp).getTime() < 24 * 60 * 60 * 1000,
+      );
+
+      if (
+        isAnomaly(todayTotal, baseline) &&
+        !actions.some((a) => a.ruleId === "daily-threshold") &&
+        !spikeAcked &&
+        !recentSpikeFired
+      ) {
+        const DAY_NAMES = [
+          "Sunday",
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+        ];
+        const dayName = DAY_NAMES[todayDow]!;
+        const context = getSpendContext(todayTotal, baseline, dayName);
+
+        const tools = found
+          .filter((t) => t.billingType === "api" && t.totalCost > 0)
+          .sort((a, b) => b.totalCost - a.totalCost)
+          .map((t) => ({ name: t.tool, amount: t.totalCost }));
+
+        actions.push({
+          alertId: `daily-spike-baseline-${Date.now()}`,
+          ruleId: "daily-spike-baseline",
+          ruleName: `Spend anomaly (${context})`,
+          level: 0,
+          amount: todayTotal,
+          threshold: baseline.p95,
+          isEscalation: false,
+          isSpike: true,
+          frequency: "daily",
+          tools,
+        });
       }
     }
 
@@ -1614,6 +1683,100 @@ hookCmd
     console.log(chalk.dim(`  ${settingsPath}`));
   });
 
+// ── BASELINE ──
+
+const DAY_NAMES_ORDERED = [
+  { name: "Mon", dow: 1 },
+  { name: "Tue", dow: 2 },
+  { name: "Wed", dow: 3 },
+  { name: "Thu", dow: 4 },
+  { name: "Fri", dow: 5 },
+  { name: "Sat", dow: 6 },
+  { name: "Sun", dow: 0 },
+];
+
+program
+  .command("baseline")
+  .description("Show spending patterns based on historical data")
+  .action(() => {
+    initDB();
+    const historyDays = getHistoryDays();
+
+    if (historyDays < 7) {
+      console.log(
+        chalk.yellow(
+          `Not enough data yet (${historyDays} days, need at least 7).`,
+        ),
+      );
+      console.log(
+        chalk.dim("Keep running tokenclaw and baselines will build up."),
+      );
+      return;
+    }
+
+    const todayDow = new Date().getDay();
+    const todaySpend = getTodaySpend();
+
+    console.log(
+      chalk.bold(`Your spending patterns`) +
+        chalk.dim(` (${historyDays} days of history)\n`),
+    );
+
+    // Header
+    console.log(
+      `  ${chalk.dim("Day".padEnd(12))}${chalk.dim("Median".padStart(10))}${chalk.dim("P95".padStart(10))}${chalk.dim("Today".padStart(10))}`,
+    );
+
+    for (const { name, dow } of DAY_NAMES_ORDERED) {
+      const baseline = getBaselineForDay(dow);
+      const medianStr =
+        baseline.median > 0 ? fmtUSD(baseline.median) : chalk.dim("--");
+      const p95Str = baseline.p95 > 0 ? fmtUSD(baseline.p95) : chalk.dim("--");
+
+      let todayStr = "";
+      let marker = "";
+      if (dow === todayDow) {
+        todayStr = fmtUSD(todaySpend);
+        if (baseline.median > 0) {
+          const pct = Math.round(
+            ((todaySpend - baseline.median) / baseline.median) * 100,
+          );
+          if (pct > 0) {
+            marker = chalk.yellow(` <- today (+${pct}%)`);
+          } else if (pct < 0) {
+            marker = chalk.green(` <- today (${pct}%)`);
+          } else {
+            marker = chalk.dim(" <- today");
+          }
+        } else {
+          marker = chalk.dim(" <- today");
+        }
+      }
+
+      const isToday = dow === todayDow;
+      const dayLabel = isToday
+        ? chalk.white.bold(name.padEnd(12))
+        : chalk.white(name.padEnd(12));
+
+      console.log(
+        `  ${dayLabel}${medianStr.padStart(10)}${p95Str.padStart(10)}${todayStr.padStart(10)}${marker}`,
+      );
+    }
+
+    // Per-tool baselines
+    const toolBaselines = getToolBaselines();
+    if (toolBaselines.length > 0) {
+      console.log(chalk.bold("\nBy tool:"));
+      for (const { tool, median } of toolBaselines) {
+        if (median > 0) {
+          console.log(
+            `  ${chalk.white(tool.padEnd(20))} ${chalk.cyan(fmtUSD(median))}/day median`,
+          );
+        }
+      }
+    }
+  });
+
 // ── DIGEST ──
 
 program
@@ -1670,6 +1833,10 @@ program
       console.log(chalk.yellow(`↑ ${pctAbove}% above your 7-day average`));
     }
 
+    if (digest.baseline_context) {
+      console.log(chalk.dim(`Baseline: ${digest.baseline_context}`));
+    }
+
     const config = loadConfig();
     if (config.alerts.slack_webhook) {
       try {
@@ -1685,6 +1852,109 @@ program
         ),
       );
     }
+  });
+
+// ── MCP ──
+
+const mcpCmd = program
+  .command("mcp")
+  .description("MCP server — let agents self-check their budget");
+
+mcpCmd
+  .command("start", { isDefault: true })
+  .description("Start MCP server on stdio")
+  .action(async () => {
+    const { startMcpServer } = await import("./mcp/server.js");
+    await startMcpServer();
+  });
+
+mcpCmd
+  .command("install")
+  .description("Add tokenclaw MCP server to Claude Code settings")
+  .action(() => {
+    const claudeDir = join(homedir(), ".claude");
+    const settingsPath = join(claudeDir, "settings.json");
+
+    if (!existsSync(claudeDir)) {
+      mkdirSync(claudeDir, { recursive: true });
+    }
+
+    let settings: Record<string, unknown> = {};
+    if (existsSync(settingsPath)) {
+      try {
+        const raw = readFileSync(settingsPath, "utf-8");
+        settings = JSON.parse(raw || "{}") as Record<string, unknown>;
+      } catch {
+        settings = {};
+      }
+    }
+
+    if (!settings.mcpServers || typeof settings.mcpServers !== "object") {
+      settings.mcpServers = {};
+    }
+    const mcpServers = settings.mcpServers as Record<string, unknown>;
+
+    if (mcpServers.tokenclaw) {
+      console.log(chalk.dim("MCP server already installed."));
+      return;
+    }
+
+    mcpServers.tokenclaw = {
+      command: "tokenclaw",
+      args: ["mcp"],
+    };
+
+    writeFileSync(
+      settingsPath,
+      JSON.stringify(settings, null, 2) + "\n",
+      "utf-8",
+    );
+    console.log(chalk.green("Installed tokenclaw MCP server."));
+    console.log(chalk.dim(`  ${settingsPath}`));
+    console.log(
+      chalk.dim(
+        "  Agents can now call get_budget_status, get_session_cost, estimate_cost",
+      ),
+    );
+  });
+
+mcpCmd
+  .command("uninstall")
+  .description("Remove tokenclaw MCP server from Claude Code settings")
+  .action(() => {
+    const settingsPath = join(homedir(), ".claude", "settings.json");
+
+    if (!existsSync(settingsPath)) {
+      console.log(chalk.dim("No Claude Code settings found."));
+      return;
+    }
+
+    let settings: Record<string, unknown>;
+    try {
+      const raw = readFileSync(settingsPath, "utf-8");
+      settings = JSON.parse(raw || "{}") as Record<string, unknown>;
+    } catch {
+      console.log(chalk.dim("Could not parse settings.json."));
+      return;
+    }
+
+    const mcpServers = settings.mcpServers as
+      | Record<string, unknown>
+      | undefined;
+    if (!mcpServers || !mcpServers.tokenclaw) {
+      console.log(chalk.dim("No tokenclaw MCP server found."));
+      return;
+    }
+
+    delete mcpServers.tokenclaw;
+
+    writeFileSync(
+      settingsPath,
+      JSON.stringify(settings, null, 2) + "\n",
+      "utf-8",
+    );
+    console.log(chalk.green("Removed tokenclaw MCP server."));
+    console.log(chalk.dim(`  ${settingsPath}`));
   });
 
 program.parse();

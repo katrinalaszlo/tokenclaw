@@ -198,6 +198,54 @@ Auto-detects provider: `/v1/messages` → Anthropic, `/v1/chat/completions` → 
 
 ---
 
+## MCP Server — let agents check their budget
+
+AI agents can self-check their spend via the Model Context Protocol (MCP). The server exposes three tools over stdio.
+
+### Install
+
+```bash
+tokenclaw mcp install
+```
+
+This adds the server to `~/.claude/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "tokenclaw": {
+      "command": "tokenclaw",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+To remove: `tokenclaw mcp uninstall`
+
+### Tools
+
+| Tool | What it does |
+|---|---|
+| `get_budget_status` | Returns today's spend, daily/weekly thresholds, remaining budget, percentage used, session count. No parameters. |
+| `get_session_cost` | Returns cost, token count, model, and duration for a session. Optional `project_path` parameter — defaults to most recent session. |
+| `estimate_cost` | Estimates cost for a model call. Parameters: `model`, `input_tokens`, `output_tokens`, optional `cache_read_tokens` and `cache_write_tokens`. |
+
+### Budget-aware CLAUDE.md snippet
+
+Add to your project's `CLAUDE.md` to make agents budget-conscious:
+
+```markdown
+## Cost awareness
+
+Before starting expensive operations (large refactors, multi-file changes), check your budget:
+- Use the `get_budget_status` tool to see remaining daily budget
+- If over 80%, mention it and ask before proceeding
+- Use `estimate_cost` to preview cost of large context windows
+```
+
+---
+
 ## Config
 
 ```bash

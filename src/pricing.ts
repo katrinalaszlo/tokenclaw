@@ -70,7 +70,7 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
   },
 };
 
-const DEFAULT_PRICING: ModelPricing = {
+export const DEFAULT_PRICING: ModelPricing = {
   input: 3,
   output: 15,
   cacheRead: 0.3,
