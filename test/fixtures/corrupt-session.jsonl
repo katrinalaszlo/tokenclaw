@@ -1,0 +1,4 @@
+{"timestamp":"2026-05-20T10:00:00Z","message":{"id":"msg_010","model":"claude-sonnet-4-6","usage":{"input_tokens":1000,"output_tokens":500,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}
+{"timestamp":"2026-05-20T11:00:00Z","message":{"id":"msg_011","model":"claude-sonnet-4-6","usage":{"input_tokens":800,"output_tokens":200
+this is not json at all
+{"timestamp":"2026-05-20T12:00:00Z","message":{"id":"msg_012","model":"claude-sonnet-4-6","usage":{"input_tokens":500,"output_tokens":100,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}

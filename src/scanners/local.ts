@@ -54,11 +54,11 @@ const TOOLS: { name: string; paths: string[]; recursive: boolean }[] = [
   { name: "Continue.dev", paths: [".continue/sessions"], recursive: true },
 ];
 
-function isAuxiliaryFile(name: string): boolean {
+export function isAuxiliaryFile(name: string): boolean {
   return name.includes(".checkpoint.") || name.includes(".trajectory.");
 }
 
-async function findJsonlFiles(
+export async function findJsonlFiles(
   dir: string,
   recursive: boolean,
 ): Promise<string[]> {
@@ -96,7 +96,7 @@ async function findJsonlFiles(
   return results;
 }
 
-async function parseJsonlFile(filePath: string): Promise<{
+export async function parseJsonlFile(filePath: string): Promise<{
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
