@@ -1130,6 +1130,56 @@ program
     );
   });
 
+// ── TODAY ──
+
+program
+  .command("today")
+  .description("Today's spend at a glance")
+  .action(async () => {
+    initDB();
+    const { found } = await scanLocalTools();
+    persistScanToDB(found);
+
+    const config = loadConfig();
+    writeState(found, config);
+
+    const today = new Date().toISOString().split("T")[0]!;
+    const apiTools = found.filter((t) => t.billingType === "api");
+
+    let todayTotal = 0;
+    const toolSpend: Array<{ name: string; cost: number }> = [];
+
+    for (const t of apiTools) {
+      const dayCost = t.dailyCosts
+        .filter((d) => d.date === today)
+        .reduce((sum, d) => sum + d.cost, 0);
+      if (dayCost > 0) {
+        toolSpend.push({ name: t.tool, cost: dayCost });
+        todayTotal += dayCost;
+      }
+    }
+
+    const threshold = config.thresholds.daily;
+    const pct = threshold > 0 ? Math.round((todayTotal / threshold) * 100) : 0;
+
+    console.log();
+    if (toolSpend.length === 0) {
+      console.log(chalk.dim("  No API spend today."));
+    } else {
+      for (const t of toolSpend.sort((a, b) => b.cost - a.cost)) {
+        console.log(
+          `  ${chalk.white(t.name.padEnd(18))} ${chalk.cyan(fmtUSD(t.cost))}`,
+        );
+      }
+      console.log();
+      console.log(
+        `  ${chalk.bold("Total")}              ${chalk.cyan(fmtUSD(todayTotal))}` +
+          (threshold > 0 ? chalk.dim(` / ${fmtUSD(threshold)} (${pct}%)`) : ""),
+      );
+    }
+    console.log();
+  });
+
 // ── LIST ──
 
 program
