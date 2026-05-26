@@ -169,7 +169,7 @@ function scanToEngineSnapshotsForPeriod(
 function persistScanToDB(
   found: Awaited<ReturnType<typeof scanLocalTools>>["found"],
 ): void {
-  for (const tool of found) {
+  for (const tool of found.filter((t) => t.billingType === "api")) {
     for (const [model, dates] of Object.entries(tool.modelDateCosts)) {
       for (const [date, mdc] of Object.entries(dates)) {
         insertCostSnapshot(
@@ -1868,7 +1868,7 @@ program
 
     console.log(chalk.bold("tokenclaw daily digest\n"));
     console.log(
-      `Yesterday: ${chalk.cyan("$" + digest.yesterday_usd.toFixed(2))} across ${digest.yesterday_sessions} sessions`,
+      `Yesterday: ${chalk.cyan("$" + digest.yesterday_usd.toFixed(2))} across ${digest.yesterday_sessions} tool${digest.yesterday_sessions === 1 ? "" : "s"}`,
     );
     const weekPct =
       digest.week_threshold > 0

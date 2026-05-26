@@ -36,7 +36,6 @@ export function buildDigest(): DigestData {
 
   const toolTotals: Record<string, number> = {};
   const modelTotals: Record<string, number> = {};
-  let yesterdaySessions = 0;
 
   for (const snap of yesterdaySnapshots) {
     toolTotals[snap.tool] = (toolTotals[snap.tool] || 0) + snap.amount_usd;
@@ -44,8 +43,9 @@ export function buildDigest(): DigestData {
       modelTotals[snap.model] =
         (modelTotals[snap.model] || 0) + snap.amount_usd;
     }
-    yesterdaySessions++;
   }
+
+  const yesterdayTools = Object.keys(toolTotals).length;
 
   const topToolEntry = Object.entries(toolTotals).sort(
     ([, a], [, b]) => b - a,
@@ -88,7 +88,7 @@ export function buildDigest(): DigestData {
 
   return {
     yesterday_usd: yesterdayUsd,
-    yesterday_sessions: yesterdaySessions,
+    yesterday_sessions: yesterdayTools,
     week_usd: weekUsd,
     week_threshold: config.thresholds.weekly,
     top_tool: topToolEntry

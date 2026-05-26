@@ -127,7 +127,7 @@ function formatDigestMessage(d: DigestData): string {
 
   const lines = [
     `*tokenclaw daily digest*`,
-    `Yesterday: $${d.yesterday_usd.toFixed(2)} across ${d.yesterday_sessions} sessions`,
+    `Yesterday: $${d.yesterday_usd.toFixed(2)} across ${d.yesterday_sessions} tool${d.yesterday_sessions === 1 ? "" : "s"}`,
     `This week: $${d.week_usd.toFixed(2)} / $${d.week_threshold.toFixed(2)} (${weekPct}%)`,
     `Top tool: ${d.top_tool.name} ($${d.top_tool.cost.toFixed(2)})`,
     `Top model: ${d.top_model.name} ($${d.top_model.cost.toFixed(2)})`,
