@@ -3,6 +3,7 @@ import {
   getTodaySpend,
   getAverageDaily,
   getCostSnapshots,
+  SUBSCRIPTION_TOOLS,
 } from "./db.js";
 import { loadConfig } from "./config.js";
 import type { DigestData } from "./alerts/slack.js";
@@ -23,7 +24,11 @@ export function buildDigest(): DigestData {
 
   const yesterdayUsd = getTodaySpend({ date: yesterdayStr });
 
-  const weekSnapshots = getCostSnapshots(undefined, weekAgoStr, todayStr);
+  const weekSnapshots = getCostSnapshots(
+    undefined,
+    weekAgoStr,
+    todayStr,
+  ).filter((s) => !SUBSCRIPTION_TOOLS.has(s.tool));
   const weekUsd = weekSnapshots.reduce((s, r) => s + r.amount_usd, 0);
 
   const avgDaily = getAverageDaily(7);
@@ -32,7 +37,7 @@ export function buildDigest(): DigestData {
     undefined,
     yesterdayStr,
     yesterdayStr,
-  );
+  ).filter((s) => !SUBSCRIPTION_TOOLS.has(s.tool));
 
   const toolTotals: Record<string, number> = {};
   const modelTotals: Record<string, number> = {};
