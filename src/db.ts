@@ -3,6 +3,12 @@ import { join } from "node:path";
 import { existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 
+export const SUBSCRIPTION_TOOLS = new Set([
+  "Claude Code",
+  "Cursor",
+  "Claude Desktop",
+]);
+
 let db: Database.Database | null = null;
 
 function getAccDir(): string {
@@ -165,6 +171,8 @@ export function getTodaySpend(options?: {
 }): number {
   const database = getDb();
   const targetDate = options?.date ?? new Date().toISOString().split("T")[0]!;
+  const excludeList = [...SUBSCRIPTION_TOOLS];
+  const placeholders = excludeList.map(() => "?").join(",");
 
   if (options?.tool) {
     const row = database
@@ -177,14 +185,16 @@ export function getTodaySpend(options?: {
 
   const row = database
     .prepare(
-      `SELECT COALESCE(SUM(amount_usd), 0) as total FROM cost_snapshots WHERE date = ?`,
+      `SELECT COALESCE(SUM(amount_usd), 0) as total FROM cost_snapshots WHERE date = ? AND tool NOT IN (${placeholders})`,
     )
-    .get(targetDate) as { total: number };
+    .get(targetDate, ...excludeList) as { total: number };
   return row.total;
 }
 
 export function getAverageDaily(days: number = 30): number {
   const database = getDb();
+  const excludeList = [...SUBSCRIPTION_TOOLS];
+  const placeholders = excludeList.map(() => "?").join(",");
   const row = database
     .prepare(
       `SELECT COALESCE(AVG(daily_total), 0) as avg_daily
@@ -192,10 +202,11 @@ export function getAverageDaily(days: number = 30): number {
          SELECT date, SUM(amount_usd) as daily_total
          FROM cost_snapshots
          WHERE date >= date('now', '-' || ? || ' days')
+           AND tool NOT IN (${placeholders})
          GROUP BY date
        )`,
     )
-    .get(days) as { avg_daily: number };
+    .get(days, ...excludeList) as { avg_daily: number };
   return row.avg_daily;
 }
 

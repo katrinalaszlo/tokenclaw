@@ -4,9 +4,7 @@
  * enabling dynamic spike detection that replaces the hardcoded SPIKE_MULTIPLIER.
  */
 
-import { getCostSnapshots } from "./db.js";
-
-const SUBSCRIPTION_TOOLS = new Set(["Claude Code", "Cursor", "Claude Desktop"]);
+import { getCostSnapshots, SUBSCRIPTION_TOOLS } from "./db.js";
 
 export interface Baseline {
   median: number;
